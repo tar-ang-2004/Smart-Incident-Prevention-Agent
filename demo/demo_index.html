@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Incident Prevention Agent - Demo</title>
+    <link rel="stylesheet" href="demo_styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <h1 class="system-title">Smart Incident Prevention Agent</h1>
+            <span class="powered-by">Powered by IBM watsonx Orchestrate</span>
+        </div>
+        <div class="header-right">
+            <span class="demo-badge">DEMO MODE</span>
+            <span class="status-indicator" data-status="idle">
+                Status: <span id="systemStatus">Idle</span>
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <!-- Left Panel: Control Panel -->
+        <aside class="control-panel">
+            <div class="panel-header">
+                <h2>Incident Input</h2>
+            </div>
+            
+            <div class="scenario-selector">
+                <label for="scenarioDropdown">Select Demo Scenario:</label>
+                <select id="scenarioDropdown" class="scenario-select">
+                    <option value="">Choose scenario...</option>
+                </select>
+            </div>
+            
+            <div class="input-preview" id="inputPreview" style="display:none;">
+                <h3>Input Preview:</h3>
+                <div class="json-viewer-wrapper">
+                    <pre class="json-viewer" id="jsonInput"></pre>
+                </div>
+                <button class="btn-secondary btn-sm" id="copyJsonBtn">Copy JSON</button>
+            </div>
+            
+            <div class="control-buttons">
+                <button class="btn-primary" id="runSimulationBtn" disabled>
+                    <span class="btn-text">Run Simulation</span>
+                    <span class="spinner" id="btnSpinner" style="display:none;"></span>
+                </button>
+                <button class="btn-secondary" id="resetBtn" disabled>Reset</button>
+            </div>
+        </aside>
+
+        <!-- Right Panel: Agent Flow -->
+        <section class="agent-flow-panel">
+            <!-- Flow Timeline -->
+            <div class="flow-timeline">
+                <div class="timeline-header">
+                    <h2>Agent Orchestration Flow</h2>
+                </div>
+                
+                <div class="timeline-stages">
+                    <div class="stage" data-stage="monitoring" data-status="pending">
+                        <div class="stage-number">1</div>
+                        <div class="stage-label">Monitoring<br>Agent</div>
+                        <div class="stage-status-icon">○</div>
+                    </div>
+                    
+                    <div class="stage-connector"></div>
+                    
+                    <div class="stage" data-stage="analysis" data-status="pending">
+                        <div class="stage-number">2</div>
+                        <div class="stage-label">Analysis<br>Agent</div>
+                        <div class="stage-status-icon">○</div>
+                    </div>
+                    
+                    <div class="stage-connector"></div>
+                    
+                    <div class="stage" data-stage="response" data-status="pending">
+                        <div class="stage-number">3</div>
+                        <div class="stage-label">Response<br>Planning</div>
+                        <div class="stage-status-icon">○</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent Output Container -->
+            <div class="agent-outputs" id="agentOutputs">
+                <!-- Empty State -->
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">📋</div>
+                    <h3>No Simulation Running</h3>
+                    <p>Select a scenario and click "Run Simulation" to begin</p>
+                </div>
+                
+                <!-- Agent Cards will be inserted here dynamically -->
+            </div>
+
+            <!-- Response Plan (Initially Hidden) -->
+            <div class="response-plan" id="responsePlan" style="display:none;">
+                <!-- Will be populated dynamically -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="footer-left">
+            <span>IBM watsonx Orchestrate | Demo Mode</span>
+        </div>
+        <div class="footer-right">
+            <span>No real incidents processed</span>
+        </div>
+    </footer>
+
+    <!-- Agent Card Template -->
+    <template id="agentCardTemplate">
+        <div class="agent-card" data-agent="" data-expanded="false">
+            <div class="card-header">
+                <div class="card-title-section">
+                    <h3 class="card-agent-name"></h3>
+                    <span class="status-badge"></span>
+                </div>
+                <div class="card-timestamp"></div>
+            </div>
+            
+            <div class="card-body">
+                <div class="reasoning-section">
+                    <h4>Reasoning Summary</h4>
+                    <p class="reasoning-text"></p>
+                </div>
+                
+                <div class="confidence-section">
+                    <div class="confidence-header">
+                        <h4>Confidence Score: <span class="confidence-value"></span></h4>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill"></div>
+                    </div>
+                    <div class="confidence-labels">
+                        <span>Low</span>
+                        <span>High</span>
+                    </div>
+                </div>
+                
+                <div class="escalation-warning" style="display:none;">
+                    <div class="warning-icon">⚠</div>
+                    <div class="warning-content">
+                        <strong>ESCALATION REQUIRED</strong>
+                        <p class="escalation-reason"></p>
+                    </div>
+                </div>
+                
+                <div class="details-section collapsed">
+                    <button class="toggle-details-btn">
+                        <span class="toggle-icon">▼</span> View Details
+                    </button>
+                    <div class="details-content" style="display:none;">
+                        <div class="details-header">
+                            <h4>Detailed Output (JSON)</h4>
+                            <button class="copy-json-btn">Copy JSON</button>
+                        </div>
+                        <pre class="json-output"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="demo_app.js"></script>
+</body>
+</html>

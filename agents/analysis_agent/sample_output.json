@@ -1,0 +1,474 @@
+{
+  "diagnostic_reports": [
+    {
+      "scenario_name": "high_risk_resource_saturation_diagnosis",
+      "description": "Diagnostic analysis for payment gateway resource exhaustion",
+      "output": {
+        "diagnosis_id": "diag-2026-01-30-001-x9k7",
+        "escalation_id": "esc-2026-01-30-001-a7f3",
+        "timestamp": "2026-01-30T14:23:48Z",
+        "source_system": "payment_gateway_prod",
+        "environment": "production",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis_id": "hyp-001-1",
+            "rank": 1,
+            "root_cause": "Database connection pool exhaustion creating resource starvation feedback loop",
+            "category": "resource_exhaustion",
+            "confidence": 0.92,
+            "evidence": [
+              "Repeated CONN_POOL_EXHAUSTED errors (7 occurrences in 15 seconds)",
+              "Database connection timeout after 30s (FATAL level)",
+              "CPU utilization at 97.3% sustained for 8+ minutes",
+              "Memory utilization at 94.8% sustained for 6+ minutes",
+              "Thread pool utilization at 98%",
+              "Request queue depth at 387 items"
+            ],
+            "reasoning": "The causal chain is: (1) Database connection pool reaches maximum capacity, preventing new database connections. (2) Application threads waiting for connections accumulate, consuming CPU and memory. (3) Thread pool approaches saturation (98%), further degrading request handling. (4) Requests queue up (387 items), increasing memory pressure. (5) Positive feedback loop: more queued requests → more memory pressure → slower processing → longer connection holds → fewer available connections. The temporal sequence (connection errors → resource saturation → queue buildup) and correlation across multiple resource dimensions strongly support this hypothesis. Error rate of 18.2% aligns with ~18% of requests failing due to unavailable database connections.",
+            "affected_components": [
+              "payment.service",
+              "payment.database",
+              "database_connection_pool",
+              "application_thread_pool"
+            ]
+          },
+          {
+            "hypothesis_id": "hyp-001-2",
+            "rank": 2,
+            "root_cause": "Sudden traffic spike exceeding connection pool capacity",
+            "category": "capacity_limit",
+            "confidence": 0.55,
+            "evidence": [
+              "Request rate at 142 req/s (baseline unknown from signals)",
+              "Connection pool exhaustion pattern",
+              "Queue depth significant at 387 items"
+            ],
+            "reasoning": "Alternative hypothesis: An unexpected traffic surge exceeded the configured connection pool size, leading to exhaustion. However, this is less likely than Hypothesis 1 because: (a) no evidence of abnormally high request rate in the signals, (b) resource saturation (CPU/memory) suggests internal inefficiency rather than simply high volume, (c) sustained alert duration (6-8 minutes) suggests ongoing problem rather than transient spike. This hypothesis would require additional context about normal traffic patterns to validate.",
+            "affected_components": [
+              "payment.service",
+              "database_connection_pool"
+            ]
+          }
+        ],
+        "refined_severity": {
+          "severity_level": "HIGH",
+          "change_from_monitoring": "confirmed",
+          "original_severity": "HIGH",
+          "justification": "Monitoring Agent's HIGH severity classification is confirmed. Diagnostic analysis validates severe resource exhaustion with cascading effects. Impact assessment reveals: (1) Payment processing capability severely degraded (18.2% error rate), (2) Revenue-generating transactions failing, (3) Multi-resource saturation (CPU 97%, memory 95%, thread pool 98%) indicating system-wide strain, (4) Sustained duration (6-8 minutes) eliminates transient spike possibility, (5) Request queue buildup (387 items) indicates ongoing degradation. No upgrade to CRITICAL warranted as system remains partially operational (81.8% success rate) and no evidence of complete outage or data loss. No downgrade justified given severe user-facing impact and revenue risk."
+        },
+        "impact_assessment": {
+          "impact_scope": "widespread",
+          "impact_areas": {
+            "user_experience": {
+              "impact_level": "severe",
+              "description": "Approximately 18% of payment transactions failing. Users experiencing payment processing errors and likely transaction abandonment. Severe degradation of core payment functionality.",
+              "affected_user_percentage": 18
+            },
+            "business_operations": {
+              "impact_level": "severe",
+              "description": "Revenue-generating payment transactions failing at 18% rate. Direct revenue loss from failed transactions. Customer satisfaction impact. Potential chargebacks or disputes from failed payment attempts.",
+              "revenue_at_risk": true
+            },
+            "data_integrity": {
+              "impact_level": "minor",
+              "description": "No evidence of data corruption or loss. Failed transactions likely result in clean rollback. Primary concern is transaction completion, not data integrity.",
+              "data_loss_risk": false
+            },
+            "sla_compliance": {
+              "impact_level": "severe",
+              "description": "Error rate of 18.2% likely violates payment processing SLA (typically 99%+ availability required). Response time degradation to 3450ms may violate latency SLAs. Sustained duration (4+ minutes) indicates SLA breach has occurred.",
+              "sla_breach_imminent": false,
+              "sla_breach_occurred": true
+            }
+          },
+          "blast_radius": {
+            "description": "Impact currently contained to payment gateway service. Risk of cascade to dependent services if resource exhaustion worsens or propagates.",
+            "affected_services": [
+              "payment_gateway_prod",
+              "payment.service",
+              "payment.database"
+            ],
+            "cascade_risk": "medium",
+            "downstream_dependencies": [
+              "order_processing_service (may timeout waiting for payment confirmation)",
+              "inventory_reservation_service (may hold reservations for failed payments)",
+              "notification_service (may generate error notifications)"
+            ]
+          },
+          "urgency_level": "high",
+          "estimated_time_to_impact": "Already impacting users; degradation ongoing for 6+ minutes. Risk of complete failure if resource exhaustion continues unchecked."
+        },
+        "diagnostic_confidence": 0.88,
+        "uncertainty_factors": [
+          "No baseline traffic metrics provided to assess if traffic volume is abnormal",
+          "Database server health and resource utilization unknown (only connection pool visibility)",
+          "Connection pool configuration parameters (max size, timeout settings) not available",
+          "No historical incident data for pattern matching"
+        ],
+        "forward_to_response_planning": true,
+        "response_planning_priority": "high",
+        "diagnostic_summary": "Payment gateway experiencing severe resource exhaustion due to database connection pool saturation. Primary hypothesis (92% confidence): Connection pool exhaustion creating feedback loop with CPU/memory pressure. Impact: 18% payment transaction failure rate, revenue at risk, SLA breach occurred. Scope: Widespread within payment service, medium cascade risk to order processing. Urgency: High - immediate response required to prevent complete service failure. Recommend response planning focus on connection pool scaling and resource optimization.",
+        "metadata": {
+          "analysis_duration_ms": 2847,
+          "hypotheses_evaluated": 3,
+          "knowledge_base_queries": 2,
+          "correlation_patterns_matched": [
+            "connection_pool_exhaustion_pattern",
+            "resource_feedback_loop_pattern"
+          ]
+        }
+      }
+    },
+    {
+      "scenario_name": "medium_risk_latency_degradation_diagnosis",
+      "description": "Diagnostic analysis for inventory service performance degradation",
+      "output": {
+        "diagnosis_id": "diag-2026-01-30-002-y4m2",
+        "escalation_id": "esc-2026-01-30-002-b4e8",
+        "timestamp": "2026-01-30T10:15:25Z",
+        "source_system": "inventory_service_eu",
+        "environment": "production",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis_id": "hyp-002-1",
+            "rank": 1,
+            "root_cause": "Database query performance degradation due to missing index or table growth",
+            "category": "configuration_error",
+            "confidence": 0.72,
+            "evidence": [
+              "Query execution time warnings exceeding 2000ms (multiple occurrences)",
+              "Request timeouts after 5000ms (REQUEST_TIMEOUT errors)",
+              "Database connection pool at 78% capacity",
+              "P95 response time at 1850ms (154% of baseline)",
+              "Cache hit rate low at 42%",
+              "Error rate at 9.4%"
+            ],
+            "reasoning": "The symptom pattern suggests database query inefficiency: (1) Database queries exceeding 2000ms indicate slow query execution, (2) These slow queries cause request timeouts at API layer after 5000ms, (3) Slow queries hold database connections longer, driving connection pool to 78% utilization, (4) Low cache hit rate (42%) means more queries hitting database, amplifying the problem, (5) Overall API latency increases to 1850ms (54% above baseline). Most probable cause: missing database index on frequently queried table, or table growth exceeding query optimization thresholds. Alternative: database resource contention, but CPU/memory metrics (68% / 72%) don't suggest database server saturation.",
+            "affected_components": [
+              "inventory.database",
+              "inventory.api",
+              "database_query_optimizer"
+            ]
+          },
+          {
+            "hypothesis_id": "hyp-002-2",
+            "rank": 2,
+            "root_cause": "Cache invalidation or cache service degradation reducing cache effectiveness",
+            "category": "dependency_failure",
+            "confidence": 0.48,
+            "evidence": [
+              "Cache hit rate at 42% (potentially below normal)",
+              "Increased database query load indicated by pool utilization",
+              "Latency degradation consistent with cache miss penalty"
+            ],
+            "reasoning": "Alternative hypothesis: Cache service degradation or excessive cache invalidation is forcing more requests to hit the database, increasing latency. Low cache hit rate (42%) could indicate cache service issues or invalidation storm. This would explain increased database load and latency. However, this hypothesis has lower confidence because: (a) no direct evidence of cache service errors in logs, (b) no baseline cache hit rate to determine if 42% is abnormal, (c) query execution time warnings suggest database itself is slow, not just overloaded. More likely that cache ineffectiveness is a contributing factor rather than root cause.",
+            "affected_components": [
+              "inventory.cache",
+              "inventory.database"
+            ]
+          }
+        ],
+        "refined_severity": {
+          "severity_level": "MEDIUM",
+          "change_from_monitoring": "confirmed",
+          "original_severity": "MEDIUM",
+          "justification": "Monitoring Agent's MEDIUM severity classification is confirmed. Diagnostic analysis supports moderate severity: (1) Service remains operational with 90.6% success rate, (2) Performance degraded but not catastrophic (1850ms vs 1200ms baseline = 54% increase), (3) Impact appears localized to inventory queries, (4) No evidence of cascade to critical business functions, (5) Resource utilization moderate (CPU 68%, memory 72%) suggesting capacity for degraded operation. No upgrade to HIGH warranted: impact is partial, not widespread; core e-commerce functions (checkout, payment) not directly affected; degradation level tolerable in short term. No downgrade to LOW: sustained duration (18+ minutes), user-facing latency impact, elevated error rate require attention."
+        },
+        "impact_assessment": {
+          "impact_scope": "localized",
+          "impact_areas": {
+            "user_experience": {
+              "impact_level": "moderate",
+              "description": "Inventory queries experiencing noticeable latency (1850ms). Users may see delayed inventory availability information or slow product page loads. Request timeouts (9.4% of requests) causing some inventory checks to fail. Degraded but functional user experience.",
+              "affected_user_percentage": 9.4
+            },
+            "business_operations": {
+              "impact_level": "moderate",
+              "description": "Inventory query delays may slow order processing and product browsing. Not directly impacting revenue transactions but degrading shopping experience. Potential for abandoned carts due to slow page loads.",
+              "revenue_at_risk": false
+            },
+            "data_integrity": {
+              "impact_level": "none",
+              "description": "No evidence of data integrity issues. Query timeouts result in error responses, not data corruption. Read-heavy operation with no indication of write failures.",
+              "data_loss_risk": false
+            },
+            "sla_compliance": {
+              "impact_level": "moderate",
+              "description": "P95 latency at 1850ms may violate internal SLO for inventory service (typical target: sub-500ms for reads). Error rate of 9.4% approaching warning thresholds. Sustained duration (18 minutes) notable but not yet critical SLA breach.",
+              "sla_breach_imminent": true
+            }
+          },
+          "blast_radius": {
+            "description": "Impact localized to inventory service. Limited cascade risk as inventory is typically non-blocking for core purchase flows.",
+            "affected_services": [
+              "inventory_service_eu",
+              "inventory.api",
+              "inventory.database"
+            ],
+            "cascade_risk": "low",
+            "downstream_dependencies": [
+              "product_catalog_service (may show stale inventory data)",
+              "recommendation_service (may have delayed inventory checks)",
+              "order_validation_service (may timeout on inventory verification)"
+            ]
+          },
+          "urgency_level": "medium",
+          "estimated_time_to_impact": "Already impacting users with degraded query performance. If database performance continues to degrade, could escalate to HIGH severity within 1-2 hours."
+        },
+        "diagnostic_confidence": 0.65,
+        "uncertainty_factors": [
+          "No baseline cache hit rate to determine if 42% is abnormal",
+          "Database server resource utilization not visible (only connection pool metrics)",
+          "Database schema and indexing information not available",
+          "No query execution plans or slow query logs to confirm hypothesis",
+          "Normal traffic patterns unknown - cannot determine if load is elevated"
+        ],
+        "forward_to_response_planning": true,
+        "response_planning_priority": "normal",
+        "diagnostic_summary": "Inventory service experiencing moderate performance degradation likely due to database query inefficiency. Primary hypothesis (72% confidence): Database query performance issues from missing index or table growth. Impact: 9.4% query failure rate, noticeable latency increase (54% above baseline), degraded user experience. Scope: Localized to inventory service, low cascade risk. Urgency: Medium - requires attention but not immediate crisis. Recommend response planning investigate database query optimization and cache configuration. Moderate diagnostic confidence due to limited database visibility.",
+        "metadata": {
+          "analysis_duration_ms": 2156,
+          "hypotheses_evaluated": 3,
+          "knowledge_base_queries": 2,
+          "correlation_patterns_matched": [
+            "database_query_degradation_pattern"
+          ]
+        }
+      }
+    },
+    {
+      "scenario_name": "medium_risk_repeated_failure_diagnosis",
+      "description": "Diagnostic analysis for API gateway upstream connection failures",
+      "output": {
+        "diagnosis_id": "diag-2026-01-30-003-z7p9",
+        "escalation_id": "esc-2026-01-30-003-c9d2",
+        "timestamp": "2026-01-30T16:05:36Z",
+        "source_system": "api_gateway_prod",
+        "environment": "production",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis_id": "hyp-003-1",
+            "rank": 1,
+            "root_cause": "Upstream service crash or unresponsive due to internal failure",
+            "category": "dependency_failure",
+            "confidence": 0.75,
+            "evidence": [
+              "11 consecutive CONNECTION_REFUSED errors in 18 seconds",
+              "Consistent error pattern with no successful connections",
+              "Error message: 'Upstream service connection refused'",
+              "Connection failure rate alert triggered (11 failures vs 5 threshold)",
+              "Error rate at 11.7%"
+            ],
+            "reasoning": "CONNECTION_REFUSED error indicates the target service is not accepting connections on the specified port. This typically occurs when: (1) Service process has crashed or terminated, (2) Service is running but not listening on the expected port, (3) Service is rejecting connections due to overload protection. The consistent failure pattern (11 consecutive errors) with no intermittent successes strongly suggests the upstream service is completely unavailable rather than intermittently failing. The short time window (18 seconds) and consistency of errors point to sudden service failure rather than gradual degradation. Most likely scenario: upstream service crashed or was terminated, leaving gateway unable to establish connections.",
+            "affected_components": [
+              "gateway.proxy",
+              "upstream_backend_service"
+            ]
+          },
+          {
+            "hypothesis_id": "hyp-003-2",
+            "rank": 2,
+            "root_cause": "Network connectivity issue between gateway and upstream service",
+            "category": "network_issue",
+            "confidence": 0.48,
+            "evidence": [
+              "CONNECTION_REFUSED errors consistent with network-level rejection",
+              "Rapid consecutive failures suggest infrastructure issue",
+              "No evidence of upstream service health in signals"
+            ],
+            "reasoning": "Alternative hypothesis: Network-level issue (firewall rule change, routing failure, network partition) preventing gateway from reaching upstream service. CONNECTION_REFUSED could occur if network equipment is actively rejecting connections. However, this hypothesis has lower confidence because: (a) CONNECTION_REFUSED typically occurs at TCP level when service isn't listening, not at network level (network issues usually timeout rather than refuse), (b) no evidence of network alerts or other network-dependent services failing, (c) error pattern is more consistent with service failure than network issue. Would require network telemetry to validate this hypothesis.",
+            "affected_components": [
+              "gateway.proxy",
+              "network_infrastructure",
+              "upstream_backend_service"
+            ]
+          }
+        ],
+        "refined_severity": {
+          "severity_level": "MEDIUM",
+          "change_from_monitoring": "confirmed",
+          "original_severity": "MEDIUM",
+          "justification": "Monitoring Agent's MEDIUM severity classification is confirmed. Diagnostic analysis supports moderate severity: (1) Error rate at 11.7% indicates ~88% of requests still succeeding, suggesting partial impact, (2) Gateway itself remains healthy (CPU 54%, memory 62%) - issue is with upstream dependency, (3) Duration relatively short (2 minutes) - not yet prolonged outage, (4) Request routing may have fallback paths or alternative backends (uncertain from signals). No upgrade to HIGH warranted: majority of requests still succeeding, gateway infrastructure healthy, impact appears partial. Would consider upgrade if: (a) error rate continues climbing, (b) no upstream service recovery after 5-10 minutes, (c) cascade effects detected. No downgrade: 11.7% error rate is significant user impact requiring resolution."
+        },
+        "impact_assessment": {
+          "impact_scope": "partial",
+          "impact_areas": {
+            "user_experience": {
+              "impact_level": "moderate",
+              "description": "Approximately 11.7% of API requests failing due to upstream service unavailability. Users affected by these failures may experience error messages, failed operations, or degraded functionality for specific features routed through failed upstream service.",
+              "affected_user_percentage": 11.7
+            },
+            "business_operations": {
+              "impact_level": "moderate",
+              "description": "Specific business functionality dependent on failed upstream service is degraded. Impact severity depends on criticality of upstream service (unknown from signals). If upstream handles critical operations, business impact could be severe despite moderate error rate.",
+              "revenue_at_risk": false
+            },
+            "data_integrity": {
+              "impact_level": "none",
+              "description": "Connection failures result in clean request failures, not data corruption. No evidence of partial writes or data inconsistency.",
+              "data_loss_risk": false
+            },
+            "sla_compliance": {
+              "impact_level": "moderate",
+              "description": "Error rate of 11.7% likely violates API gateway SLA (typically 99%+ required). Duration of 2+ minutes approaching SLA breach thresholds. Immediate resolution required to prevent sustained SLA violation.",
+              "sla_breach_imminent": true
+            }
+          },
+          "blast_radius": {
+            "description": "Impact localized to requests routed to failed upstream service. Gateway infrastructure healthy. Cascade risk depends on whether failed upstream service is dependency for other services.",
+            "affected_services": [
+              "api_gateway_prod",
+              "unknown_upstream_service"
+            ],
+            "cascade_risk": "medium",
+            "downstream_dependencies": [
+              "Services dependent on failed upstream (identity unknown from signals)",
+              "Potential for retry storms if clients aggressively retry failed requests"
+            ]
+          },
+          "urgency_level": "medium",
+          "estimated_time_to_impact": "Already impacting 11.7% of users. If upstream service does not recover within 5-10 minutes, may require failover or circuit breaking to prevent degradation."
+        },
+        "diagnostic_confidence": 0.62,
+        "uncertainty_factors": [
+          "Upstream service identity and criticality unknown from signals",
+          "No visibility into upstream service health or logs",
+          "No network telemetry to rule out network-level issues",
+          "Gateway routing configuration unknown (alternative backends available?)",
+          "No information on whether automatic failover or circuit breaking is configured"
+        ],
+        "forward_to_response_planning": true,
+        "response_planning_priority": "normal",
+        "diagnostic_summary": "API gateway experiencing upstream service connection failures. Primary hypothesis (75% confidence): Upstream service crashed or became unresponsive. Impact: 11.7% API request failure rate, moderate user experience degradation, SLA breach imminent. Scope: Partial impact limited to specific upstream service route, medium cascade risk. Urgency: Medium - requires investigation and upstream service recovery. Recommend response planning focus on upstream service health check and potential failover to alternative backend. Diagnostic confidence moderate due to limited upstream visibility.",
+        "metadata": {
+          "analysis_duration_ms": 1823,
+          "hypotheses_evaluated": 2,
+          "knowledge_base_queries": 1,
+          "correlation_patterns_matched": [
+            "upstream_dependency_failure_pattern"
+          ]
+        }
+      }
+    },
+    {
+      "scenario_name": "high_risk_cascading_failure_diagnosis",
+      "description": "Diagnostic analysis for checkout service cascading multi-component failure",
+      "output": {
+        "diagnosis_id": "diag-2026-01-30-004-w3n5",
+        "escalation_id": "esc-2026-01-30-004-e1a5",
+        "timestamp": "2026-01-30T19:18:56Z",
+        "source_system": "checkout_service_prod",
+        "environment": "production",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis_id": "hyp-004-1",
+            "rank": 1,
+            "root_cause": "Database connection pool exhaustion triggering cascading circuit breaker failures across dependent services",
+            "category": "resource_exhaustion",
+            "confidence": 0.95,
+            "evidence": [
+              "FATAL: Database connection pool completely exhausted (POOL_EXHAUSTED)",
+              "Multiple DB_UNAVAILABLE errors across checkout and order components",
+              "Circuit breaker OPEN for payment_gateway (CIRCUIT_OPEN)",
+              "Circuit breaker OPEN for inventory_service (CIRCUIT_OPEN)",
+              "GATEWAY_TIMEOUT errors from payment service (10s timeout)",
+              "SERVICE_UNAVAILABLE from inventory service",
+              "Request queue at maximum capacity (500/500)",
+              "Error rate critically high at 47.8%",
+              "Availability degraded to 76.3% (SLA: 99.5%)",
+              "CPU at 89.4%, memory at 92.7%"
+            ],
+            "reasoning": "Clear cascading failure pattern with identifiable root cause: (1) Initial failure: Database connection pool completely exhausted, preventing any new database connections for checkout service. (2) Primary impact: Order creation fails with DB_UNAVAILABLE errors as no database connections available. (3) Cascade to payment gateway: Checkout service cannot persist payment state to database, causing payment requests to timeout after 10s. Repeated timeouts trigger payment_gateway circuit breaker to OPEN state. (4) Cascade to inventory service: Similar pattern - inventory reservations cannot be persisted, causing inventory service calls to fail, triggering inventory_service circuit breaker to OPEN. (5) Amplification: Request queue builds to maximum (500/500) as failed requests accumulate faster than they can be processed. (6) Resource pressure: CPU/memory elevation (89%/93%) from accumulated threads and queued requests. (7) Overall impact: 47.8% error rate, 76.3% availability. The temporal sequence (database exhaustion → service failures → circuit breakers → queue saturation → resource pressure) and correlation across multiple components strongly confirms this cascading pattern. This is a classic cascading failure initiated by resource exhaustion.",
+            "affected_components": [
+              "checkout.database",
+              "database_connection_pool",
+              "checkout.order",
+              "checkout.payment",
+              "checkout.inventory",
+              "payment_gateway_service",
+              "inventory_service",
+              "circuit_breaker_subsystem",
+              "request_queue"
+            ]
+          }
+        ],
+        "refined_severity": {
+          "severity_level": "CRITICAL",
+          "change_from_monitoring": "upgraded",
+          "original_severity": "HIGH",
+          "justification": "Upgrading from HIGH to CRITICAL severity based on comprehensive diagnostic analysis revealing multiple critical escalation factors: (1) Multiple critical business services simultaneously impacted: checkout, payment gateway, inventory service all degraded or failing. (2) Cascading failure pattern active and accelerating: circuit breakers opening indicate failure propagation beyond initial scope. (3) Core revenue-generating process (e-commerce checkout) completely stopped: 47.8% error rate with 76.3% availability means majority of checkout attempts failing. (4) SLA breach severe and sustained: 76.3% availability vs 99.5% SLA = massive breach (23% unavailability), sustained for 7+ minutes. (5) Request queue at absolute maximum (500/500): system at saturation, cannot accept additional load. (6) Resource pressure approaching limits (CPU 89%, memory 93%): risk of complete failure imminent. (7) Circuit breakers open: protective mechanisms engaged, indicating system in defensive mode. While monitoring agent correctly identified HIGH risk, the diagnostic analysis reveals scope and cascading nature warrant CRITICAL classification. This is a full-scale incident with immediate revenue impact and risk of complete service collapse.",
+          "original_severity": "HIGH"
+        },
+        "impact_assessment": {
+          "impact_scope": "widespread",
+          "impact_areas": {
+            "user_experience": {
+              "impact_level": "critical",
+              "description": "E-commerce checkout completely degraded with 47.8% of transactions failing. Users unable to complete purchases. Critical user-facing functionality unavailable. Severe customer experience impact likely to result in lost sales and reputational damage.",
+              "affected_user_percentage": 47.8
+            },
+            "business_operations": {
+              "impact_level": "critical",
+              "description": "Primary revenue-generating process (e-commerce checkout) severely impaired. Approximately 48% of attempted purchases failing, resulting in direct revenue loss. Payment processing unavailable due to circuit breaker. Inventory management degraded. Business operations critically impacted with significant financial consequences.",
+              "revenue_at_risk": true
+            },
+            "data_integrity": {
+              "impact_level": "moderate",
+              "description": "Database connection exhaustion and circuit breaker patterns suggest clean failure modes (requests fail rather than partially succeed). Primary concern is incomplete transactions and potential orphaned resources (e.g., inventory reservations without completed orders). No evidence of data corruption, but data consistency verification recommended post-recovery.",
+              "data_loss_risk": false
+            },
+            "sla_compliance": {
+              "impact_level": "critical",
+              "description": "Severe SLA breach: 76.3% availability vs 99.5% SLA threshold = 23.2 percentage point violation. Error rate of 47.8% massively exceeds acceptable thresholds (typically < 1%). Sustained duration of 7+ minutes guarantees SLA breach for availability and error rate metrics. Financial penalties and contractual violations likely.",
+              "sla_breach_imminent": false,
+              "sla_breach_occurred": true,
+              "sla_breach_severity": "severe"
+            }
+          },
+          "blast_radius": {
+            "description": "Widespread cascading failure affecting entire checkout ecosystem. Database exhaustion initiated cascade affecting payment gateway and inventory service. Circuit breakers engaged to prevent further spread, but core checkout functionality unavailable.",
+            "affected_services": [
+              "checkout_service_prod",
+              "checkout.database",
+              "checkout.order",
+              "checkout.payment",
+              "checkout.inventory",
+              "payment_gateway_service (circuit breaker OPEN)",
+              "inventory_service (circuit breaker OPEN)"
+            ],
+            "cascade_risk": "high",
+            "downstream_dependencies": [
+              "Order fulfillment service (blocked by failed checkouts)",
+              "Shipping service (no new orders to process)",
+              "Customer notification service (may generate error notifications)",
+              "Fraud detection service (transactions not reaching fraud checks)",
+              "Analytics and reporting (incomplete transaction data)",
+              "Recommendation engine (impacted by failed purchase data)"
+            ]
+          },
+          "urgency_level": "critical",
+          "estimated_time_to_impact": "Impact is immediate and severe. System has been degraded for 7+ minutes with accelerating failure cascade. Without immediate intervention, risk of complete checkout failure within minutes. Every minute of downtime represents significant revenue loss."
+        },
+        "diagnostic_confidence": 0.95,
+        "uncertainty_factors": [
+          "Root cause of database connection pool exhaustion not identified (why did pool exhaust?)",
+          "Potential upstream cause: sudden traffic spike, connection leak, database server issue, configuration change - requires deeper investigation"
+        ],
+        "forward_to_response_planning": true,
+        "response_planning_priority": "critical",
+        "diagnostic_summary": "CRITICAL: Checkout service experiencing cascading failure initiated by database connection pool exhaustion. Root cause (95% confidence): Connection pool exhaustion triggering cascading circuit breaker failures across payment and inventory services. Impact: 47.8% transaction failure rate, core revenue process severely impaired, SLA breach severe (76.3% vs 99.5%), circuit breakers open on critical dependencies. Scope: Widespread across entire checkout ecosystem. Blast radius: High cascade risk affecting order fulfillment, shipping, and analytics. Urgency: CRITICAL - immediate intervention required. Recommend IMMEDIATE response: (1) Emergency connection pool scaling or restart, (2) Circuit breaker manual reset after database recovery, (3) Request queue flush, (4) Investigate root cause of connection pool exhaustion. Revenue impact severe and ongoing.",
+        "metadata": {
+          "analysis_duration_ms": 3421,
+          "hypotheses_evaluated": 2,
+          "knowledge_base_queries": 3,
+          "correlation_patterns_matched": [
+            "cascading_failure_pattern",
+            "circuit_breaker_cascade_pattern",
+            "connection_pool_exhaustion_pattern",
+            "resource_saturation_feedback_loop"
+          ]
+        }
+      }
+    }
+  ]
+}

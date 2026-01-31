@@ -1,0 +1,344 @@
+agent:
+  metadata:
+    name: monitoring_agent
+    version: 1.0.0
+    type: signal_detection
+    orchestration_platform: ibm_watsonx_orchestrate
+    created: 2026-01-30
+    
+  description: |
+    Continuously analyzes system signals including logs, alerts, and metrics to detect 
+    early indicators of potential IT incidents. Performs pattern recognition, anomaly 
+    detection, and risk classification to identify conditions that may lead to service 
+    degradation or outages before they occur.
+    
+  purpose: |
+    Serve as the first-line detection layer in a proactive incident prevention system.
+    Ingest multi-source observability data, apply pattern analysis and threshold-based
+    detection logic, classify risk severity, and escalate findings to downstream analysis
+    and response agents when preventive action may be warranted.
+    
+  capabilities:
+    - Multi-source signal ingestion (logs, alerts, metrics)
+    - Pattern-based anomaly detection
+    - Error rate analysis and trending
+    - Threshold breach identification
+    - Risk level classification
+    - Confidence scoring with reasoning
+    - Structured output generation
+    - Intelligent escalation routing
+    
+  input_schema:
+    type: object
+    required:
+      - timestamp
+      - source_system
+      - signals
+    properties:
+      timestamp:
+        type: string
+        format: iso8601
+        description: Observation timestamp for the monitoring window
+      source_system:
+        type: string
+        description: Identifier for the monitored system or application
+        examples:
+          - payment_gateway_prod
+          - inventory_service_eu
+          - auth_service_global
+      environment:
+        type: string
+        enum: [production, staging, development]
+        default: production
+      signals:
+        type: object
+        required:
+          - logs
+          - alerts
+          - metrics
+        properties:
+          logs:
+            type: array
+            description: Application or system log entries
+            items:
+              type: object
+              required:
+                - timestamp
+                - level
+                - message
+              properties:
+                timestamp:
+                  type: string
+                  format: iso8601
+                level:
+                  type: string
+                  enum: [DEBUG, INFO, WARN, ERROR, FATAL]
+                message:
+                  type: string
+                source:
+                  type: string
+                trace_id:
+                  type: string
+                error_code:
+                  type: string
+          alerts:
+            type: array
+            description: Triggered monitoring alerts
+            items:
+              type: object
+              required:
+                - alert_id
+                - severity
+                - description
+              properties:
+                alert_id:
+                  type: string
+                severity:
+                  type: string
+                  enum: [info, warning, critical]
+                description:
+                  type: string
+                metric_name:
+                  type: string
+                threshold_value:
+                  type: number
+                current_value:
+                  type: number
+                duration:
+                  type: string
+          metrics:
+            type: object
+            description: Current metric values and thresholds
+            properties:
+              error_rate:
+                type: number
+                description: Percentage of failed requests
+              response_time_p95:
+                type: number
+                description: 95th percentile response time in milliseconds
+              cpu_utilization:
+                type: number
+                description: CPU usage percentage
+              memory_utilization:
+                type: number
+                description: Memory usage percentage
+              request_rate:
+                type: number
+                description: Requests per second
+              queue_depth:
+                type: integer
+                description: Number of pending items in queue
+                
+  output_schema:
+    type: object
+    required:
+      - assessment_id
+      - timestamp
+      - source_system
+      - risk_level
+      - confidence_score
+      - findings
+      - escalation_required
+      - reasoning
+    properties:
+      assessment_id:
+        type: string
+        format: uuid
+        description: Unique identifier for this monitoring assessment
+      timestamp:
+        type: string
+        format: iso8601
+        description: Assessment completion timestamp
+      source_system:
+        type: string
+        description: System identifier from input
+      risk_level:
+        type: string
+        enum: [NONE, LOW, MEDIUM, HIGH]
+        description: Classified risk level based on detected patterns
+      confidence_score:
+        type: number
+        minimum: 0.0
+        maximum: 1.0
+        description: Confidence in the risk classification (0.0 to 1.0)
+      findings:
+        type: array
+        description: Detailed list of detected anomalies or patterns
+        items:
+          type: object
+          required:
+            - finding_type
+            - description
+            - severity
+          properties:
+            finding_type:
+              type: string
+              enum:
+                - error_rate_spike
+                - repeated_failures
+                - threshold_breach
+                - abnormal_pattern
+                - resource_saturation
+                - latency_degradation
+            description:
+              type: string
+            severity:
+              type: string
+              enum: [low, medium, high]
+            evidence:
+              type: object
+              description: Supporting data for the finding
+            affected_component:
+              type: string
+      escalation_required:
+        type: boolean
+        description: True if risk_level is MEDIUM or HIGH
+      escalation_target:
+        type: string
+        enum: [analysis_agent, null]
+        description: Target agent for escalation when required
+      reasoning:
+        type: string
+        description: Detailed explanation of the risk assessment and decision logic
+      metadata:
+        type: object
+        properties:
+          analysis_duration_ms:
+            type: integer
+          signals_analyzed:
+            type: object
+          detection_rules_applied:
+            type: array
+            items:
+              type: string
+              
+  constraints:
+    - Must process inputs within 5 seconds for real-time monitoring effectiveness
+    - Must not perform root cause analysis (delegated to analysis_agent)
+    - Must not recommend remediation actions (delegated to response_agent)
+    - Must not modify or suppress incoming signals
+    - Must maintain complete audit trail of all assessments
+    - Must operate deterministically with consistent outputs for identical inputs
+    - Must not infer system state beyond provided signals
+    - Must not escalate NONE or LOW risk findings
+    - Must provide explainable reasoning for all risk classifications
+    
+  escalation_criteria:
+    automatic_escalation:
+      - condition: risk_level == "MEDIUM" AND confidence_score >= 0.7
+        target: analysis_agent
+        priority: normal
+      - condition: risk_level == "HIGH" AND confidence_score >= 0.6
+        target: analysis_agent
+        priority: urgent
+    no_escalation:
+      - condition: risk_level == "NONE"
+      - condition: risk_level == "LOW"
+      - condition: confidence_score < 0.6
+        action: log_for_trending
+        
+  detection_rules:
+    error_rate_spike:
+      description: Detects sudden increase in error rate
+      trigger:
+        - error_rate > 5% AND previous_period_error_rate < 2%
+        - error_rate > 10%
+      risk_mapping:
+        - condition: error_rate > 15%
+          risk: HIGH
+        - condition: error_rate > 8%
+          risk: MEDIUM
+        - condition: error_rate > 5%
+          risk: LOW
+          
+    repeated_failures:
+      description: Detects identical error patterns occurring repeatedly
+      trigger:
+        - same_error_code appears >= 10 times in 5 minute window
+        - same_error_message appears >= 15 times in 5 minute window
+      risk_mapping:
+        - condition: frequency > 20 occurrences
+          risk: HIGH
+        - condition: frequency > 10 occurrences
+          risk: MEDIUM
+          
+    threshold_breach:
+      description: Detects metric threshold violations
+      trigger:
+        - critical_alert received
+        - metric exceeds defined threshold
+      risk_mapping:
+        - condition: severity == "critical" AND duration > 5min
+          risk: HIGH
+        - condition: severity == "critical"
+          risk: MEDIUM
+        - condition: severity == "warning" AND duration > 15min
+          risk: MEDIUM
+          
+    resource_saturation:
+      description: Detects resource exhaustion patterns
+      trigger:
+        - cpu_utilization > 85%
+        - memory_utilization > 90%
+        - queue_depth growing continuously
+      risk_mapping:
+        - condition: cpu > 95% OR memory > 95%
+          risk: HIGH
+        - condition: cpu > 85% OR memory > 90%
+          risk: MEDIUM
+          
+    latency_degradation:
+      description: Detects performance degradation
+      trigger:
+        - response_time_p95 > threshold * 1.5
+        - response_time_p95 > 2000ms
+      risk_mapping:
+        - condition: response_time > threshold * 2
+          risk: HIGH
+        - condition: response_time > threshold * 1.5
+          risk: MEDIUM
+          
+  orchestrator_contract:
+    invocation_mode: synchronous
+    timeout: 5000ms
+    retry_policy:
+      max_attempts: 2
+      backoff: exponential
+    input_validation: strict
+    output_validation: strict
+    
+  error_handling:
+    malformed_input:
+      action: return_error
+      error_code: INVALID_INPUT_SCHEMA
+      escalate: false
+    processing_timeout:
+      action: return_partial_results
+      error_code: PROCESSING_TIMEOUT
+      escalate: true
+    insufficient_data:
+      action: return_low_confidence_assessment
+      error_code: INSUFFICIENT_SIGNALS
+      escalate: false
+      
+  observability:
+    logging:
+      level: INFO
+      include_input_summary: true
+      include_output_summary: true
+      include_decision_trace: true
+    metrics:
+      - assessments_completed_total
+      - assessments_by_risk_level
+      - escalations_triggered_total
+      - processing_duration_seconds
+      - confidence_score_distribution
+    tracing:
+      enabled: true
+      sample_rate: 1.0
+      
+  compliance:
+    data_retention: 90_days
+    pii_handling: no_pii_expected
+    audit_trail: required
+    explainability: required

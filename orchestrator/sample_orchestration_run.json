@@ -1,0 +1,783 @@
+{
+  "sample_orchestration_run": {
+    "metadata": {
+      "orchestration_run_id": "orch-2026-01-30-001-k7m4",
+      "start_timestamp": "2026-01-30T14:23:15Z",
+      "end_timestamp": "2026-01-30T14:24:02Z",
+      "total_duration_seconds": 47,
+      "orchestrator_version": "1.0",
+      "terminal_state": "COMPLETED_HANDOFF",
+      "description": "Payment gateway resource exhaustion - connection pool saturation"
+    },
+    
+    "orchestration_trace": {
+      
+      "phase_1_monitoring": {
+        "phase_name": "monitoring",
+        "start_timestamp": "2026-01-30T14:23:15Z",
+        "end_timestamp": "2026-01-30T14:23:28Z",
+        "duration_seconds": 13,
+        
+        "input": {
+          "source": "monitoring_infrastructure",
+          "logs": [
+            {
+              "timestamp": "2026-01-30T14:22:30Z",
+              "level": "ERROR",
+              "service": "payment.service",
+              "message": "Database connection pool exhausted. Unable to acquire connection.",
+              "metadata": {"error_code": "CONN_POOL_EXHAUSTED"}
+            },
+            {
+              "timestamp": "2026-01-30T14:22:42Z",
+              "level": "FATAL",
+              "service": "payment.database",
+              "message": "Connection timeout after 30s",
+              "metadata": {"timeout_ms": 30000}
+            },
+            {
+              "timestamp": "2026-01-30T14:23:05Z",
+              "level": "ERROR",
+              "service": "payment.service",
+              "message": "Request processing failed: Database unavailable",
+              "metadata": {"error_count": 47}
+            }
+          ],
+          "alerts": [
+            {
+              "alert_id": "alert-2026-01-30-001",
+              "alert_name": "High Error Rate",
+              "severity": "high",
+              "triggered_at": "2026-01-30T14:23:10Z",
+              "description": "Error rate exceeded 15% threshold",
+              "value": 18.2,
+              "threshold": 15.0
+            },
+            {
+              "alert_id": "alert-2026-01-30-002",
+              "alert_name": "CPU Utilization Critical",
+              "severity": "critical",
+              "triggered_at": "2026-01-30T14:23:12Z",
+              "description": "CPU utilization exceeded 95%",
+              "value": 97.3,
+              "threshold": 95.0
+            }
+          ],
+          "metrics": {
+            "error_rate_percent": 18.2,
+            "request_rate_per_sec": 142,
+            "cpu_utilization_percent": 97.3,
+            "memory_utilization_percent": 94.8,
+            "response_time_p95_ms": 3450,
+            "database_connection_pool_utilization_percent": 100
+          }
+        },
+        
+        "agent_invocation": {
+          "agent_id": "monitoring_agent",
+          "invocation_id": "inv-monitoring-001-x3k9",
+          "invocation_timestamp": "2026-01-30T14:23:15Z",
+          "response_timestamp": "2026-01-30T14:23:28Z",
+          "response_time_seconds": 13,
+          "status": "success"
+        },
+        
+        "output": {
+          "risk_level": "HIGH",
+          "confidence": 0.88,
+          "signal_count": {
+            "logs": 47,
+            "alerts": 2,
+            "metrics": 6
+          },
+          "severity_factors": [
+            "High error rate (18.2% vs 2% baseline)",
+            "Critical CPU utilization (97.3%)",
+            "Database connection pool completely exhausted",
+            "Multiple FATAL and ERROR level logs",
+            "Response time severely degraded (3450ms vs 200ms baseline)"
+          ],
+          "escalation_recommended": true,
+          "escalation_payload": {
+            "escalation_id": "esc-2026-01-30-001-a7f3",
+            "source_system": "payment_gateway_prod",
+            "risk_level": "HIGH",
+            "summary": "Payment gateway experiencing severe resource exhaustion with 18.2% error rate, 97.3% CPU, and database connection pool exhaustion."
+          }
+        },
+        
+        "routing_decision": {
+          "decision_id": "decision-001",
+          "decision_point": "monitoring_evaluation",
+          "condition_evaluated": "risk_level = HIGH",
+          "decision": "ESCALATE to diagnostic phase",
+          "justification": "HIGH risk level requires diagnostic investigation. Confidence (0.88) acceptable for escalation.",
+          "next_phase": "diagnostic",
+          "flags_set": ["HIGH_SEVERITY"]
+        }
+      },
+      
+      "phase_2_diagnostic": {
+        "phase_name": "diagnostic",
+        "start_timestamp": "2026-01-30T14:23:28Z",
+        "end_timestamp": "2026-01-30T14:23:45Z",
+        "duration_seconds": 17,
+        
+        "input": {
+          "escalation_id": "esc-2026-01-30-001-a7f3",
+          "source_system": "payment_gateway_prod",
+          "environment": "production",
+          "risk_level": "HIGH",
+          "signals": {
+            "error_patterns": [
+              "CONN_POOL_EXHAUSTED (7 occurrences)",
+              "Connection timeout (FATAL)",
+              "Database unavailable (47 errors)"
+            ],
+            "resource_metrics": {
+              "cpu_utilization_percent": 97.3,
+              "memory_utilization_percent": 94.8,
+              "database_pool_utilization_percent": 100
+            },
+            "performance_metrics": {
+              "error_rate_percent": 18.2,
+              "response_time_p95_ms": 3450
+            }
+          }
+        },
+        
+        "agent_invocation": {
+          "agent_id": "analysis_agent",
+          "invocation_id": "inv-analysis-001-y8p2",
+          "invocation_timestamp": "2026-01-30T14:23:28Z",
+          "response_timestamp": "2026-01-30T14:23:45Z",
+          "response_time_seconds": 17,
+          "status": "success"
+        },
+        
+        "output": {
+          "diagnosis_id": "diag-2026-01-30-001-x9k7",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis_id": "hyp-001-1",
+              "rank": 1,
+              "root_cause": "Database connection pool exhaustion creating resource starvation feedback loop",
+              "category": "resource_exhaustion",
+              "confidence": 0.92,
+              "evidence": [
+                "Repeated CONN_POOL_EXHAUSTED errors (7 occurrences)",
+                "Database connection timeout after 30s (FATAL level)",
+                "CPU utilization at 97.3% sustained",
+                "Memory utilization at 94.8% sustained",
+                "Thread pool utilization at 98%",
+                "Request queue depth at 387 items"
+              ],
+              "affected_components": [
+                "payment.service",
+                "payment.database",
+                "database_connection_pool",
+                "application_thread_pool"
+              ]
+            }
+          ],
+          "refined_severity": "HIGH",
+          "severity_change": "confirmed",
+          "diagnostic_confidence": 0.92,
+          "impact_assessment": {
+            "user_experience": "severe (18% transaction failures)",
+            "business_operations": "severe (revenue at risk)",
+            "sla_compliance": "severe (SLA breach occurred)",
+            "blast_radius": "widespread",
+            "urgency_level": "high"
+          },
+          "response_planning_priority": "high"
+        },
+        
+        "routing_decision": {
+          "decision_id": "decision-002",
+          "decision_point": "diagnostic_evaluation",
+          "conditions_evaluated": {
+            "diagnostic_confidence": 0.92,
+            "confidence_threshold": 0.50,
+            "confidence_check": "PASS (0.92 >= 0.50)",
+            "refined_severity": "HIGH",
+            "severity_check": "ESCALATE (HIGH >= MEDIUM)"
+          },
+          "decision": "ESCALATE to response planning",
+          "justification": "HIGH severity confirmed by analysis with strong confidence (0.92). Requires urgent response planning.",
+          "next_phase": "response_planning",
+          "flags_set": ["HIGH_SEVERITY", "URGENT_RESPONSE_REQUIRED"],
+          "priority": "P1"
+        }
+      },
+      
+      "phase_3_response_planning": {
+        "phase_name": "response_planning",
+        "start_timestamp": "2026-01-30T14:23:45Z",
+        "end_timestamp": "2026-01-30T14:23:57Z",
+        "duration_seconds": 12,
+        
+        "input": {
+          "diagnosis_id": "diag-2026-01-30-001-x9k7",
+          "root_cause": "Database connection pool exhaustion creating resource starvation feedback loop",
+          "category": "resource_exhaustion",
+          "refined_severity": "HIGH",
+          "diagnostic_confidence": 0.92,
+          "impact_assessment": {
+            "urgency_level": "high",
+            "revenue_at_risk": true,
+            "sla_breach_occurred": true
+          }
+        },
+        
+        "agent_invocation": {
+          "agent_id": "response_agent",
+          "invocation_id": "inv-response-001-z2m7",
+          "invocation_timestamp": "2026-01-30T14:23:45Z",
+          "response_timestamp": "2026-01-30T14:23:57Z",
+          "response_time_seconds": 12,
+          "status": "success"
+        },
+        
+        "output": {
+          "response_plan_id": "rplan-2026-01-30-001-m3x8",
+          "response_strategy": {
+            "strategy_type": "urgent",
+            "execution_urgency": "high",
+            "maximum_response_time": "30 minutes",
+            "justification": "HIGH severity with 18% payment transaction failures and resource exhaustion feedback loop"
+          },
+          "selected_playbooks": [
+            {
+              "rank": 1,
+              "playbook_id": "PB-001",
+              "playbook_name": "Database Connection Pool Recovery - Emergency Scale",
+              "applicability_score": 0.95,
+              "automation_feasibility": "semi-automated",
+              "estimated_duration": "10-15 minutes"
+            },
+            {
+              "rank": 2,
+              "playbook_id": "PB-003",
+              "playbook_name": "Horizontal Pod Autoscaling Acceleration",
+              "applicability_score": 0.88,
+              "automation_feasibility": "automated",
+              "estimated_duration": "5-8 minutes"
+            },
+            {
+              "rank": 3,
+              "playbook_id": "PB-007",
+              "playbook_name": "Request Queue Drain and Rate Limiting",
+              "applicability_score": 0.82,
+              "automation_feasibility": "automated",
+              "estimated_duration": "3-5 minutes"
+            }
+          ],
+          "human_in_loop": {
+            "classification": "semi-automated",
+            "approval_required": true,
+            "approval_scope": [
+              "Database connection pool scaling parameters",
+              "Rate limiting thresholds"
+            ],
+            "approval_timeout": "10 minutes",
+            "recommended_approvers": [
+              "On-call SRE",
+              "Database Administrator"
+            ]
+          },
+          "escalation_decisions": {
+            "escalation_required": true,
+            "escalation_targets": [
+              {
+                "target": "on_call_sre",
+                "priority": "P1",
+                "notification_method": "page"
+              },
+              {
+                "target": "database_administrator",
+                "priority": "P1",
+                "notification_method": "page"
+              },
+              {
+                "target": "payment_team_lead",
+                "priority": "P2",
+                "notification_method": "slack"
+              }
+            ]
+          },
+          "execution_payload": {
+            "playbook_sequence": [
+              {
+                "step": 1,
+                "playbook_id": "PB-003",
+                "action": "Horizontal pod autoscaling - add payment service replicas",
+                "automation_level": "automated",
+                "requires_approval": false
+              },
+              {
+                "step": 2,
+                "playbook_id": "PB-007",
+                "action": "Activate rate limiting and drain request queue",
+                "automation_level": "automated",
+                "requires_approval": false
+              },
+              {
+                "step": 3,
+                "playbook_id": "PB-001",
+                "action": "Database connection pool scaling",
+                "automation_level": "semi-automated",
+                "requires_approval": true
+              }
+            ]
+          },
+          "safety_controls": {
+            "pre_execution_checks": [
+              "Verify Kubernetes cluster has capacity for additional payment service pods",
+              "Confirm database server can handle increased connection pool",
+              "Validate rate limiting thresholds won't over-restrict legitimate traffic"
+            ],
+            "execution_safeguards": [
+              "Gradual connection pool scaling with health checks",
+              "Monitor cluster resource capacity during horizontal scaling",
+              "Rate limiting with gradual threshold adjustment based on recovery"
+            ]
+          }
+        },
+        
+        "routing_decision": {
+          "decision_id": "decision-003",
+          "decision_point": "response_evaluation",
+          "conditions_evaluated": {
+            "response_plan_completeness": "PASS (all required fields present)",
+            "human_in_loop_classification": "semi-automated",
+            "response_strategy_type": "urgent",
+            "flags": ["HIGH_SEVERITY", "URGENT_RESPONSE_REQUIRED"]
+          },
+          "decisions": [
+            {
+              "decision_type": "human_in_loop_routing",
+              "decision": "PARTIAL AUTOMATION ALLOWED",
+              "justification": "Semi-automated classification allows automated playbooks (PB-003, PB-007) to proceed. Database changes (PB-001) require approval.",
+              "automation_level": "semi-automated"
+            },
+            {
+              "decision_type": "strategy_routing",
+              "decision": "SET PRIORITY P1",
+              "justification": "Urgent response strategy requires immediate escalation with 30-minute response window.",
+              "priority": "P1",
+              "escalation_urgency": "urgent",
+              "max_response_time_minutes": 30
+            },
+            {
+              "decision_type": "handoff_routing",
+              "decision": "HANDOFF to approval workflow then action execution",
+              "justification": "Urgent response with semi-automated classification requires approval for database changes, then automated execution.",
+              "handoff_destination": "approval_workflow_system"
+            }
+          ],
+          "next_phase": "downstream_handoff"
+        }
+      },
+      
+      "phase_4_downstream_handoff": {
+        "phase_name": "downstream_handoff",
+        "start_timestamp": "2026-01-30T14:23:57Z",
+        "end_timestamp": "2026-01-30T14:24:02Z",
+        "duration_seconds": 5,
+        
+        "safety_validation": {
+          "validation_timestamp": "2026-01-30T14:23:57Z",
+          "checks_performed": [
+            {
+              "check": "safety_controls_present",
+              "result": "PASS",
+              "details": "All required safety controls present: pre_execution_checks, execution_safeguards, risk_mitigation, blast_radius_containment"
+            },
+            {
+              "check": "human_in_loop_preserved",
+              "result": "PASS",
+              "details": "Human-in-loop requirements preserved: semi-automated classification, approval required for PB-001"
+            },
+            {
+              "check": "escalation_targets_identified",
+              "result": "PASS",
+              "details": "Escalation targets identified: on_call_sre (P1), database_administrator (P1), payment_team_lead (P2)"
+            },
+            {
+              "check": "audit_trail_complete",
+              "result": "PASS",
+              "details": "Audit trail complete with orchestration_run_id, agent invocation trace, routing decisions, confidence scores, severity progression"
+            }
+          ],
+          "validation_result": "PASS",
+          "validation_message": "All safety checks passed. Handoff approved."
+        },
+        
+        "handoff_payload": {
+          "handoff_id": "handoff-2026-01-30-001-h4p6",
+          "destination": "approval_workflow_system",
+          "priority": "P1",
+          "
+": "urgent",
+          
+          "orchestration_summary": {
+            "orchestration_run_id": "orch-2026-01-30-001-k7m4",
+            "incident_summary": "Payment gateway experiencing HIGH severity resource exhaustion. Root cause: Database connection pool exhaustion creating feedback loop with CPU/memory pressure. Impact: 18% payment transaction failures, revenue at risk, SLA breach occurred.",
+            "severity_progression": {
+              "monitoring": "HIGH",
+              "analysis": "HIGH (confirmed)",
+              "final_severity": "HIGH"
+            },
+            "confidence_progression": {
+              "monitoring": 0.88,
+              "diagnostic": 0.92,
+              "response": 0.85
+            }
+          },
+          
+          "diagnostic_context": {
+            "diagnosis_id": "diag-2026-01-30-001-x9k7",
+            "root_cause": "Database connection pool exhaustion creating resource starvation feedback loop",
+            "root_cause_category": "resource_exhaustion",
+            "diagnostic_confidence": 0.92,
+            "affected_components": [
+              "payment.service",
+              "payment.database",
+              "database_connection_pool"
+            ]
+          },
+          
+          "response_plan": {
+            "response_plan_id": "rplan-2026-01-30-001-m3x8",
+            "response_strategy": "urgent",
+            "maximum_response_time": "30 minutes",
+            "playbooks": [
+              {
+                "playbook_id": "PB-003",
+                "playbook_name": "Horizontal Pod Autoscaling",
+                "automation_level": "automated",
+                "requires_approval": false,
+                "execute_immediately": true
+              },
+              {
+                "playbook_id": "PB-007",
+                "playbook_name": "Request Queue Drain and Rate Limiting",
+                "automation_level": "automated",
+                "requires_approval": false,
+                "execute_immediately": true
+              },
+              {
+                "playbook_id": "PB-001",
+                "playbook_name": "Database Connection Pool Recovery",
+                "automation_level": "semi-automated",
+                "requires_approval": true,
+                "approval_required_from": ["On-call SRE", "Database Administrator"],
+                "approval_timeout_minutes": 10,
+                "execute_after_approval": true
+              }
+            ]
+          },
+          
+          "escalation_instructions": {
+            "escalation_targets": [
+              {
+                "target": "on_call_sre",
+                "role": "Incident coordinator and approval authority",
+                "notification_method": "page",
+                "priority": "P1",
+                "actions_required": [
+                  "Acknowledge incident within 5 minutes",
+                  "Review and approve database connection pool scaling",
+                  "Monitor recovery progress"
+                ]
+              },
+              {
+                "target": "database_administrator",
+                "role": "Database expert and approval authority",
+                "notification_method": "page",
+                "priority": "P1",
+                "actions_required": [
+                  "Review connection pool scaling parameters",
+                  "Approve or modify database changes",
+                  "Monitor database server health during recovery"
+                ]
+              },
+              {
+                "target": "payment_team_lead",
+                "role": "Service owner (awareness)",
+                "notification_method": "slack",
+                "priority": "P2",
+                "actions_required": [
+                  "Awareness of ongoing degradation",
+                  "Standby for escalation if recovery unsuccessful"
+                ]
+              }
+            ]
+          },
+          
+          "safety_controls": {
+            "pre_execution_checks": [
+              "Verify Kubernetes cluster has capacity for additional payment service pods",
+              "Confirm database server can handle increased connection pool",
+              "Validate rate limiting thresholds won't over-restrict legitimate traffic"
+            ],
+            "execution_safeguards": [
+              "Gradual connection pool scaling with health checks",
+              "Monitor cluster resource capacity during horizontal scaling",
+              "Rate limiting with gradual threshold adjustment"
+            ],
+            "rollback_plan": {
+              "description": "If connection pool scaling causes instability, rollback to previous configuration",
+              "rollback_triggers": [
+                "Database connection pool utilization >95% after scaling",
+                "Error rate increases above 20%"
+              ]
+            }
+          },
+          
+          "monitoring_requirements": {
+            "metrics_to_track": [
+              "CPU utilization (target: <75%)",
+              "Memory utilization (target: <80%)",
+              "Database connection pool utilization (target: <70%)",
+              "Payment transaction error rate (target: <2%)",
+              "Request queue depth (target: <50)"
+            ],
+            "success_criteria": {
+              "error_rate_below": 2.0,
+              "cpu_utilization_below": 75.0,
+              "recovery_timeout_minutes": 30
+            }
+          },
+          
+          "agent_invocation_trace": [
+            {
+              "agent_id": "monitoring_agent",
+              "invocation_id": "inv-monitoring-001-x3k9",
+              "timestamp": "2026-01-30T14:23:15Z",
+              "duration_seconds": 13,
+              "output_summary": "Risk level: HIGH, Confidence: 0.88"
+            },
+            {
+              "agent_id": "analysis_agent",
+              "invocation_id": "inv-analysis-001-y8p2",
+              "timestamp": "2026-01-30T14:23:28Z",
+              "duration_seconds": 17,
+              "output_summary": "Severity: HIGH, Confidence: 0.92, Root cause: Database connection pool exhaustion"
+            },
+            {
+              "agent_id": "response_agent",
+              "invocation_id": "inv-response-001-z2m7",
+              "timestamp": "2026-01-30T14:23:45Z",
+              "duration_seconds": 12,
+              "output_summary": "Strategy: urgent, Human-in-loop: semi-automated, Playbooks: 3 selected"
+            }
+          ],
+          
+          "decision_audit_trail": [
+            {
+              "decision_id": "decision-001",
+              "decision_point": "monitoring_evaluation",
+              "decision": "ESCALATE to diagnostic",
+              "justification": "HIGH risk level (0.88 confidence) requires diagnostic investigation"
+            },
+            {
+              "decision_id": "decision-002",
+              "decision_point": "diagnostic_evaluation",
+              "decision": "ESCALATE to response planning",
+              "justification": "HIGH severity confirmed with 0.92 confidence, urgent response required"
+            },
+            {
+              "decision_id": "decision-003a",
+              "decision_point": "response_evaluation - human_in_loop",
+              "decision": "SEMI-AUTOMATED",
+              "justification": "Allow automated playbooks (PB-003, PB-007), require approval for database changes (PB-001)"
+            },
+            {
+              "decision_id": "decision-003b",
+              "decision_point": "response_evaluation - priority",
+              "decision": "SET P1 PRIORITY",
+              "justification": "Urgent strategy requires 30-minute response window"
+            },
+            {
+              "decision_id": "decision-003c",
+              "decision_point": "response_evaluation - handoff",
+              "decision": "HANDOFF to approval workflow",
+              "justification": "Semi-automated response requires approval for risky actions"
+            }
+          ]
+        },
+        
+        "handoff_confirmation": {
+          "handoff_timestamp": "2026-01-30T14:24:02Z",
+          "handoff_status": "SUCCESS",
+          "destination_acknowledged": true,
+          "message": "Handoff payload delivered to approval_workflow_system. Escalation notifications sent to on_call_sre and database_administrator (paged), payment_team_lead (Slack)."
+        }
+      },
+      
+      "phase_5_termination": {
+        "phase_name": "orchestration_termination",
+        "timestamp": "2026-01-30T14:24:02Z",
+        
+        "terminal_state": "COMPLETED_HANDOFF",
+        "terminal_state_description": "Orchestration completed successfully. Response plan generated and handed off to approval workflow and execution systems.",
+        
+        "orchestration_summary": {
+          "orchestration_run_id": "orch-2026-01-30-001-k7m4",
+          "total_duration_seconds": 47,
+          "phases_executed": 5,
+          "agents_invoked": 3,
+          "routing_decisions_made": 6,
+          "safety_checkpoints_passed": 4,
+          "terminal_state": "COMPLETED_HANDOFF",
+          
+          "incident_summary": {
+            "title": "Payment Gateway Resource Exhaustion - Connection Pool Saturation",
+            "severity": "HIGH",
+            "root_cause": "Database connection pool exhaustion creating resource starvation feedback loop",
+            "impact": "18% payment transaction failures, revenue at risk, SLA breach occurred",
+            "diagnostic_confidence": 0.92,
+            "response_strategy": "urgent (30-minute response window)"
+          },
+          
+          "severity_progression": {
+            "monitoring_agent": "HIGH",
+            "analysis_agent": "HIGH (confirmed)",
+            "final_severity": "HIGH"
+          },
+          
+          "confidence_progression": {
+            "monitoring_confidence": 0.88,
+            "diagnostic_confidence": 0.92,
+            "response_confidence": 0.85
+          },
+          
+          "routing_path": [
+            "START → Monitoring Phase → Risk Level HIGH → ESCALATE",
+            "Diagnostic Phase → Severity HIGH, Confidence 0.92 → ESCALATE",
+            "Response Planning Phase → Strategy urgent, Human-in-loop semi-automated → HANDOFF",
+            "Downstream Handoff → Safety validation PASS → COMPLETED_HANDOFF"
+          ],
+          
+          "flags_set": [
+            "HIGH_SEVERITY",
+            "URGENT_RESPONSE_REQUIRED"
+          ],
+          
+          "escalation_actions": {
+            "escalations_triggered": 3,
+            "escalation_targets": [
+              "on_call_sre (P1, paged)",
+              "database_administrator (P1, paged)",
+              "payment_team_lead (P2, Slack)"
+            ]
+          },
+          
+          "handoff_destination": "approval_workflow_system",
+          "handoff_status": "SUCCESS",
+          
+          "automated_actions_allowed": [
+            "PB-003: Horizontal Pod Autoscaling (automated, no approval required)",
+            "PB-007: Request Queue Drain and Rate Limiting (automated, no approval required)"
+          ],
+          
+          "approval_required_actions": [
+            "PB-001: Database Connection Pool Recovery (semi-automated, DBA approval required)"
+          ]
+        },
+        
+        "audit_trail_persisted": {
+          "audit_trail_id": "audit-orch-2026-01-30-001-k7m4",
+          "persistence_location": "orchestration_audit_store",
+          "persistence_timestamp": "2026-01-30T14:24:02Z",
+          "audit_trail_includes": [
+            "Complete orchestration trace",
+            "Agent invocation details",
+            "Routing decisions with justifications",
+            "Safety validation results",
+            "Handoff payload",
+            "Terminal state and summary"
+          ]
+        },
+        
+        "observability_events": {
+          "metrics_emitted": [
+            {
+              "metric": "orchestration_runs_total",
+              "value": 1,
+              "labels": {"terminal_state": "COMPLETED_HANDOFF"}
+            },
+            {
+              "metric": "orchestration_duration_seconds",
+              "value": 47,
+              "labels": {"terminal_state": "COMPLETED_HANDOFF"}
+            },
+            {
+              "metric": "agent_invocations_total",
+              "value": 3,
+              "labels": {"orchestration_run_id": "orch-2026-01-30-001-k7m4"}
+            },
+            {
+              "metric": "routing_decision_count",
+              "value": 6,
+              "labels": {"orchestration_run_id": "orch-2026-01-30-001-k7m4"}
+            },
+            {
+              "metric": "safety_checkpoint_activations",
+              "value": 4,
+              "labels": {"result": "pass"}
+            }
+          ],
+          "traces_exported": true,
+          "logs_persisted": true
+        }
+      }
+    },
+    
+    "lessons_learned": {
+      "orchestration_effectiveness": {
+        "early_termination_avoided": "Orchestrator correctly escalated HIGH severity through all phases rather than terminating early.",
+        "confidence_handling": "High confidence (0.88-0.92) allowed semi-automated workflow, balancing speed and safety.",
+        "severity_respected": "Analysis agent confirmed HIGH severity; orchestrator respected this and enforced urgent response timeline.",
+        "safety_preserved": "All safety checkpoints passed; human approval required for risky database changes despite automation elsewhere."
+      },
+      
+      "agentic_behavior_demonstrated": {
+        "conditional_routing": "Orchestrator routed based on agent outputs (risk level, severity, confidence), not fixed pipeline.",
+        "decision_justification": "Every routing decision included explicit justification based on severity, confidence, or safety criteria.",
+        "multi_checkpoint_validation": "Safety validated at multiple points: post-monitoring, post-analysis, post-response, pre-handoff.",
+        "intelligent_escalation": "Escalated to appropriate targets (SRE, DBA) based on root cause category and severity."
+      },
+      
+      "improvements_identified": {
+        "agent_performance": "All agents responded within acceptable timeframes (13s, 17s, 12s). No performance concerns.",
+        "routing_accuracy": "Routing decisions aligned with severity and confidence. No inappropriate escalations or terminations.",
+        "safety_effectiveness": "Safety controls prevented automated database changes without approval. Working as designed."
+      }
+    },
+    
+    "alternative_scenarios": {
+      "scenario_1_low_confidence": {
+        "description": "What if diagnostic confidence was 0.42 instead of 0.92?",
+        "expected_behavior": "Orchestrator would set FORCE_HUMAN_IN_LOOP flag, override semi-automated to human-led, block all automation, require full human control for all playbooks."
+      },
+      
+      "scenario_2_downgrade": {
+        "description": "What if analysis agent downgraded severity to LOW?",
+        "expected_behavior": "Orchestrator would TERMINATE with state TERMINATED_DOWNGRADED. No response planning phase. False positive scenario."
+      },
+      
+      "scenario_3_critical_severity": {
+        "description": "What if analysis agent upgraded severity to CRITICAL?",
+        "expected_behavior": "Orchestrator would set priority P0, escalate to incident commander + engineering leadership, enforce 5-minute max response time, page all responders."
+      },
+      
+      "scenario_4_agent_failure": {
+        "description": "What if analysis agent timed out or failed?",
+        "expected_behavior": "Orchestrator would retry (max 2 retries), then HALT with state HALTED_ERROR, escalate to on-call SRE with error context, provide partial orchestration state for manual investigation."
+      }
+    }
+  }
+}

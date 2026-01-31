@@ -1,0 +1,681 @@
+{
+  "scenarios": [
+    {
+      "scenario_name": "high_risk_resource_saturation_escalation",
+      "description": "Payment gateway escalation with resource exhaustion and error spike",
+      "source": "monitoring_agent escalation from scenario: high_risk_resource_saturation_with_error_spike",
+      "input": {
+        "escalation_id": "esc-2026-01-30-001-a7f3",
+        "escalation_timestamp": "2026-01-30T14:23:45Z",
+        "escalation_priority": "urgent",
+        "monitoring_assessment": {
+          "assessment_id": "mon-2026-01-30-001-9821",
+          "timestamp": "2026-01-30T14:23:45Z",
+          "source_system": "payment_gateway_prod",
+          "environment": "production",
+          "risk_level": "HIGH",
+          "confidence_score": 0.92,
+          "findings": [
+            {
+              "finding_type": "resource_saturation",
+              "description": "Critical CPU and memory utilization with active critical alerts",
+              "severity": "high",
+              "evidence": {
+                "cpu_utilization": 97.3,
+                "memory_utilization": 94.8,
+                "alert_duration_cpu": "8m 15s",
+                "alert_duration_memory": "6m 42s"
+              },
+              "affected_component": "payment_gateway_infrastructure"
+            },
+            {
+              "finding_type": "error_rate_spike",
+              "description": "Error rate at 18.2%, significantly exceeding critical threshold",
+              "severity": "high",
+              "evidence": {
+                "current_error_rate": 18.2,
+                "threshold": 5,
+                "duration": "4m 30s"
+              },
+              "affected_component": "payment_service"
+            },
+            {
+              "finding_type": "repeated_failures",
+              "description": "Connection pool exhaustion error repeated 7 times in observation window",
+              "severity": "high",
+              "evidence": {
+                "error_code": "CONN_POOL_EXHAUSTED",
+                "occurrence_count": 7,
+                "time_window": "15 seconds"
+              },
+              "affected_component": "payment.service"
+            }
+          ],
+          "reasoning": "Multiple severe indicators detected: error rate exceeds 15% threshold at 18.2%, critical resource saturation at 97% CPU and 95% memory with sustained alerts (>6 minutes), repeated connection pool exhaustion errors indicating resource starvation. Pattern matches resource_saturation and error_rate_spike rules. High confidence (0.92) due to correlated signals across metrics, alerts, and logs.",
+          "metadata": {
+            "analysis_duration_ms": 342,
+            "signals_analyzed": {
+              "logs": 8,
+              "alerts": 3,
+              "metrics": 6
+            },
+            "detection_rules_applied": [
+              "resource_saturation",
+              "error_rate_spike",
+              "repeated_failures"
+            ]
+          }
+        },
+        "original_signals": {
+          "logs": [
+            {
+              "timestamp": "2026-01-30T14:23:30Z",
+              "level": "ERROR",
+              "message": "Payment processing failed: connection pool exhausted",
+              "source": "payment.service",
+              "trace_id": "txn-89234-2341",
+              "error_code": "CONN_POOL_EXHAUSTED"
+            },
+            {
+              "timestamp": "2026-01-30T14:23:32Z",
+              "level": "ERROR",
+              "message": "Payment processing failed: connection pool exhausted",
+              "source": "payment.service",
+              "trace_id": "txn-89234-2342",
+              "error_code": "CONN_POOL_EXHAUSTED"
+            },
+            {
+              "timestamp": "2026-01-30T14:23:34Z",
+              "level": "ERROR",
+              "message": "Payment processing failed: connection pool exhausted",
+              "source": "payment.service",
+              "trace_id": "txn-89234-2343",
+              "error_code": "CONN_POOL_EXHAUSTED"
+            },
+            {
+              "timestamp": "2026-01-30T14:23:35Z",
+              "level": "FATAL",
+              "message": "Database connection timeout after 30s",
+              "source": "payment.database",
+              "trace_id": "txn-89234-2344",
+              "error_code": "DB_TIMEOUT"
+            },
+            {
+              "timestamp": "2026-01-30T14:23:37Z",
+              "level": "ERROR",
+              "message": "Payment processing failed: connection pool exhausted",
+              "source": "payment.service",
+              "trace_id": "txn-89234-2345",
+              "error_code": "CONN_POOL_EXHAUSTED"
+            },
+            {
+              "timestamp": "2026-01-30T14:23:39Z",
+              "level": "ERROR",
+              "message": "Payment processing failed: connection pool exhausted",
+              "source": "payment.service",
+              "trace_id": "txn-89234-2346",
+              "error_code": "CONN_POOL_EXHAUSTED"
+            },
+            {
+              "timestamp": "2026-01-30T14:23:40Z",
+              "level": "WARN",
+              "message": "Thread pool utilization at 98%",
+              "source": "payment.service"
+            },
+            {
+              "timestamp": "2026-01-30T14:23:42Z",
+              "level": "ERROR",
+              "message": "Payment processing failed: connection pool exhausted",
+              "source": "payment.service",
+              "trace_id": "txn-89234-2347",
+              "error_code": "CONN_POOL_EXHAUSTED"
+            }
+          ],
+          "alerts": [
+            {
+              "alert_id": "ALERT-CPU-2026-01-30-001",
+              "severity": "critical",
+              "description": "CPU utilization exceeded critical threshold",
+              "metric_name": "cpu_utilization",
+              "threshold_value": 90,
+              "current_value": 97.3,
+              "duration": "8m 15s"
+            },
+            {
+              "alert_id": "ALERT-MEM-2026-01-30-002",
+              "severity": "critical",
+              "description": "Memory utilization exceeded critical threshold",
+              "metric_name": "memory_utilization",
+              "threshold_value": 90,
+              "current_value": 94.8,
+              "duration": "6m 42s"
+            },
+            {
+              "alert_id": "ALERT-ERR-2026-01-30-003",
+              "severity": "warning",
+              "description": "Error rate elevated above normal baseline",
+              "metric_name": "error_rate",
+              "threshold_value": 5,
+              "current_value": 18.2,
+              "duration": "4m 30s"
+            }
+          ],
+          "metrics": {
+            "error_rate": 18.2,
+            "response_time_p95": 3450,
+            "cpu_utilization": 97.3,
+            "memory_utilization": 94.8,
+            "request_rate": 142,
+            "queue_depth": 387
+          }
+        }
+      }
+    },
+    {
+      "scenario_name": "medium_risk_latency_degradation_escalation",
+      "description": "Inventory service escalation with performance degradation",
+      "source": "monitoring_agent escalation from scenario: medium_risk_latency_degradation",
+      "input": {
+        "escalation_id": "esc-2026-01-30-002-b4e8",
+        "escalation_timestamp": "2026-01-30T10:15:22Z",
+        "escalation_priority": "normal",
+        "monitoring_assessment": {
+          "assessment_id": "mon-2026-01-30-002-4421",
+          "timestamp": "2026-01-30T10:15:22Z",
+          "source_system": "inventory_service_eu",
+          "environment": "production",
+          "risk_level": "MEDIUM",
+          "confidence_score": 0.78,
+          "findings": [
+            {
+              "finding_type": "latency_degradation",
+              "description": "P95 response time at 1850ms, exceeding baseline by 150%",
+              "severity": "medium",
+              "evidence": {
+                "response_time_p95": 1850,
+                "baseline": 1200,
+                "degradation_percentage": 154,
+                "alert_duration": "18m 12s"
+              },
+              "affected_component": "inventory.api"
+            },
+            {
+              "finding_type": "error_rate_spike",
+              "description": "Error rate at 9.4%, above medium threshold",
+              "severity": "medium",
+              "evidence": {
+                "current_error_rate": 9.4,
+                "threshold": 8,
+                "duration": "12m 05s"
+              },
+              "affected_component": "inventory.service"
+            },
+            {
+              "finding_type": "repeated_failures",
+              "description": "Request timeout errors occurring repeatedly",
+              "severity": "medium",
+              "evidence": {
+                "error_code": "REQUEST_TIMEOUT",
+                "occurrence_count": 2,
+                "time_window": "10 seconds"
+              },
+              "affected_component": "inventory.api"
+            }
+          ],
+          "reasoning": "Moderate degradation detected: error rate at 9.4% (above 8% threshold), latency degradation at 180% of baseline with persistent warning alert (>18 minutes). Query execution time warnings and database connection pool pressure observed. Medium confidence (0.78) due to correlated metrics and sustained duration.",
+          "metadata": {
+            "analysis_duration_ms": 298,
+            "signals_analyzed": {
+              "logs": 6,
+              "alerts": 2,
+              "metrics": 6
+            },
+            "detection_rules_applied": [
+              "latency_degradation",
+              "error_rate_spike"
+            ]
+          }
+        },
+        "original_signals": {
+          "logs": [
+            {
+              "timestamp": "2026-01-30T10:15:10Z",
+              "level": "WARN",
+              "message": "Query execution time exceeded 2000ms",
+              "source": "inventory.database",
+              "trace_id": "inv-45123-8821"
+            },
+            {
+              "timestamp": "2026-01-30T10:15:12Z",
+              "level": "ERROR",
+              "message": "Request timeout after 5000ms",
+              "source": "inventory.api",
+              "trace_id": "inv-45123-8822",
+              "error_code": "REQUEST_TIMEOUT"
+            },
+            {
+              "timestamp": "2026-01-30T10:15:14Z",
+              "level": "WARN",
+              "message": "Query execution time exceeded 2000ms",
+              "source": "inventory.database",
+              "trace_id": "inv-45123-8823"
+            },
+            {
+              "timestamp": "2026-01-30T10:15:16Z",
+              "level": "ERROR",
+              "message": "Request timeout after 5000ms",
+              "source": "inventory.api",
+              "trace_id": "inv-45123-8824",
+              "error_code": "REQUEST_TIMEOUT"
+            },
+            {
+              "timestamp": "2026-01-30T10:15:18Z",
+              "level": "INFO",
+              "message": "Cache hit rate: 42%",
+              "source": "inventory.cache"
+            },
+            {
+              "timestamp": "2026-01-30T10:15:20Z",
+              "level": "WARN",
+              "message": "Database connection pool at 78% capacity",
+              "source": "inventory.database"
+            }
+          ],
+          "alerts": [
+            {
+              "alert_id": "ALERT-LAT-2026-01-30-101",
+              "severity": "warning",
+              "description": "P95 response time exceeds baseline by 150%",
+              "metric_name": "response_time_p95",
+              "threshold_value": 1200,
+              "current_value": 1850,
+              "duration": "18m 12s"
+            },
+            {
+              "alert_id": "ALERT-ERR-2026-01-30-102",
+              "severity": "warning",
+              "description": "Error rate elevated",
+              "metric_name": "error_rate",
+              "threshold_value": 5,
+              "current_value": 9.4,
+              "duration": "12m 05s"
+            }
+          ],
+          "metrics": {
+            "error_rate": 9.4,
+            "response_time_p95": 1850,
+            "cpu_utilization": 68.2,
+            "memory_utilization": 72.5,
+            "request_rate": 89,
+            "queue_depth": 45
+          }
+        }
+      }
+    },
+    {
+      "scenario_name": "medium_risk_repeated_failure_escalation",
+      "description": "API gateway escalation with upstream connection failures",
+      "source": "monitoring_agent escalation from scenario: medium_risk_repeated_failure_pattern",
+      "input": {
+        "escalation_id": "esc-2026-01-30-003-c9d2",
+        "escalation_timestamp": "2026-01-30T16:05:33Z",
+        "escalation_priority": "normal",
+        "monitoring_assessment": {
+          "assessment_id": "mon-2026-01-30-003-7712",
+          "timestamp": "2026-01-30T16:05:33Z",
+          "source_system": "api_gateway_prod",
+          "environment": "production",
+          "risk_level": "MEDIUM",
+          "confidence_score": 0.82,
+          "findings": [
+            {
+              "finding_type": "repeated_failures",
+              "description": "Connection refused error repeated 11 times in 2-minute window",
+              "severity": "medium",
+              "evidence": {
+                "error_code": "CONNECTION_REFUSED",
+                "occurrence_count": 11,
+                "time_window": "18 seconds"
+              },
+              "affected_component": "gateway.proxy"
+            },
+            {
+              "finding_type": "error_rate_spike",
+              "description": "Error rate at 11.7%, above medium threshold",
+              "severity": "medium",
+              "evidence": {
+                "current_error_rate": 11.7,
+                "threshold": 8,
+                "duration": "2m 18s"
+              },
+              "affected_component": "api_gateway"
+            },
+            {
+              "finding_type": "threshold_breach",
+              "description": "Connection failure rate alert triggered",
+              "severity": "medium",
+              "evidence": {
+                "metric_name": "connection_failures",
+                "threshold": 5,
+                "current_value": 11,
+                "duration": "2m 18s"
+              },
+              "affected_component": "gateway.proxy"
+            }
+          ],
+          "reasoning": "Repeated connection failure pattern detected: identical CONNECTION_REFUSED errors occurring 11 times in short duration, error rate elevated to 11.7%, connection failure alert active. Pattern suggests upstream service unavailability or network connectivity issue. Medium risk due to sustained error pattern and impact on request routing. Confidence 0.82 due to clear pattern consistency.",
+          "metadata": {
+            "analysis_duration_ms": 276,
+            "signals_analyzed": {
+              "logs": 11,
+              "alerts": 1,
+              "metrics": 6
+            },
+            "detection_rules_applied": [
+              "repeated_failures",
+              "error_rate_spike",
+              "threshold_breach"
+            ]
+          }
+        },
+        "original_signals": {
+          "logs": [
+            {
+              "timestamp": "2026-01-30T16:05:15Z",
+              "level": "ERROR",
+              "message": "Upstream service connection refused",
+              "source": "gateway.proxy",
+              "trace_id": "gw-34521-5501",
+              "error_code": "CONNECTION_REFUSED"
+            },
+            {
+              "timestamp": "2026-01-30T16:05:17Z",
+              "level": "ERROR",
+              "message": "Upstream service connection refused",
+              "source": "gateway.proxy",
+              "trace_id": "gw-34521-5502",
+              "error_code": "CONNECTION_REFUSED"
+            },
+            {
+              "timestamp": "2026-01-30T16:05:19Z",
+              "level": "ERROR",
+              "message": "Upstream service connection refused",
+              "source": "gateway.proxy",
+              "trace_id": "gw-34521-5503",
+              "error_code": "CONNECTION_REFUSED"
+            },
+            {
+              "timestamp": "2026-01-30T16:05:21Z",
+              "level": "ERROR",
+              "message": "Upstream service connection refused",
+              "source": "gateway.proxy",
+              "trace_id": "gw-34521-5504",
+              "error_code": "CONNECTION_REFUSED"
+            },
+            {
+              "timestamp": "2026-01-30T16:05:23Z",
+              "level": "ERROR",
+              "message": "Upstream service connection refused",
+              "source": "gateway.proxy",
+              "trace_id": "gw-34521-5505",
+              "error_code": "CONNECTION_REFUSED"
+            },
+            {
+              "timestamp": "2026-01-30T16:05:25Z",
+              "level": "ERROR",
+              "message": "Upstream service connection refused",
+              "source": "gateway.proxy",
+              "trace_id": "gw-34521-5506",
+              "error_code": "CONNECTION_REFUSED"
+            },
+            {
+              "timestamp": "2026-01-30T16:05:27Z",
+              "level": "ERROR",
+              "message": "Upstream service connection refused",
+              "source": "gateway.proxy",
+              "trace_id": "gw-34521-5507",
+              "error_code": "CONNECTION_REFUSED"
+            },
+            {
+              "timestamp": "2026-01-30T16:05:29Z",
+              "level": "ERROR",
+              "message": "Upstream service connection refused",
+              "source": "gateway.proxy",
+              "trace_id": "gw-34521-5508",
+              "error_code": "CONNECTION_REFUSED"
+            },
+            {
+              "timestamp": "2026-01-30T16:05:31Z",
+              "level": "ERROR",
+              "message": "Upstream service connection refused",
+              "source": "gateway.proxy",
+              "trace_id": "gw-34521-5509",
+              "error_code": "CONNECTION_REFUSED"
+            },
+            {
+              "timestamp": "2026-01-30T16:05:32Z",
+              "level": "ERROR",
+              "message": "Upstream service connection refused",
+              "source": "gateway.proxy",
+              "trace_id": "gw-34521-5510",
+              "error_code": "CONNECTION_REFUSED"
+            },
+            {
+              "timestamp": "2026-01-30T16:05:33Z",
+              "level": "ERROR",
+              "message": "Upstream service connection refused",
+              "source": "gateway.proxy",
+              "trace_id": "gw-34521-5511",
+              "error_code": "CONNECTION_REFUSED"
+            }
+          ],
+          "alerts": [
+            {
+              "alert_id": "ALERT-CONN-2026-01-30-201",
+              "severity": "warning",
+              "description": "Connection failure rate elevated",
+              "metric_name": "connection_failures",
+              "threshold_value": 5,
+              "current_value": 11,
+              "duration": "2m 18s"
+            }
+          ],
+          "metrics": {
+            "error_rate": 11.7,
+            "response_time_p95": 892,
+            "cpu_utilization": 54.2,
+            "memory_utilization": 61.8,
+            "request_rate": 203,
+            "queue_depth": 18
+          }
+        }
+      }
+    },
+    {
+      "scenario_name": "high_risk_cascading_failure_escalation",
+      "description": "Checkout service escalation with multi-component cascading failures",
+      "source": "monitoring_agent escalation from scenario: high_risk_cascading_failure",
+      "input": {
+        "escalation_id": "esc-2026-01-30-004-e1a5",
+        "escalation_timestamp": "2026-01-30T19:18:52Z",
+        "escalation_priority": "urgent",
+        "monitoring_assessment": {
+          "assessment_id": "mon-2026-01-30-004-3398",
+          "timestamp": "2026-01-30T19:18:52Z",
+          "source_system": "checkout_service_prod",
+          "environment": "production",
+          "risk_level": "HIGH",
+          "confidence_score": 0.95,
+          "findings": [
+            {
+              "finding_type": "resource_saturation",
+              "description": "Database connection pool completely exhausted with circuit breakers open",
+              "severity": "high",
+              "evidence": {
+                "error_code": "POOL_EXHAUSTED",
+                "circuit_breaker_state": "OPEN",
+                "affected_services": ["payment_gateway", "inventory_service"]
+              },
+              "affected_component": "checkout.database"
+            },
+            {
+              "finding_type": "error_rate_spike",
+              "description": "Error rate at 47.8%, critically high with multiple failure modes",
+              "severity": "high",
+              "evidence": {
+                "current_error_rate": 47.8,
+                "threshold": 10,
+                "duration": "5m 18s",
+                "failure_types": ["DB_UNAVAILABLE", "GATEWAY_TIMEOUT", "SERVICE_UNAVAILABLE"]
+              },
+              "affected_component": "checkout_service"
+            },
+            {
+              "finding_type": "threshold_breach",
+              "description": "Multiple critical alerts: availability SLA breach, request queue at maximum",
+              "severity": "high",
+              "evidence": {
+                "availability": 76.3,
+                "sla_threshold": 99.5,
+                "queue_depth": 500,
+                "queue_max": 500
+              },
+              "affected_component": "checkout_service"
+            }
+          ],
+          "reasoning": "Severe cascading failure detected across checkout service ecosystem. Database connection pool exhausted (POOL_EXHAUSTED), triggering failures across checkout, payment, and inventory components. Circuit breakers open for payment_gateway and inventory_service indicate widespread impact. Error rate critically high at 47.8% with availability at 76.3% (well below 99.5% SLA). Request queue at maximum capacity (500/500) indicating saturation. Multiple FATAL-level errors with cascading circuit breaks. High confidence (0.95) due to clear cascading pattern and severe multi-dimensional impact.",
+          "metadata": {
+            "analysis_duration_ms": 412,
+            "signals_analyzed": {
+              "logs": 10,
+              "alerts": 3,
+              "metrics": 6
+            },
+            "detection_rules_applied": [
+              "resource_saturation",
+              "error_rate_spike",
+              "threshold_breach"
+            ]
+          }
+        },
+        "original_signals": {
+          "logs": [
+            {
+              "timestamp": "2026-01-30T19:18:35Z",
+              "level": "FATAL",
+              "message": "Database connection pool completely exhausted",
+              "source": "checkout.database",
+              "trace_id": "chk-92341-7701",
+              "error_code": "POOL_EXHAUSTED"
+            },
+            {
+              "timestamp": "2026-01-30T19:18:37Z",
+              "level": "ERROR",
+              "message": "Payment gateway timeout: no response after 10s",
+              "source": "checkout.payment",
+              "trace_id": "chk-92341-7702",
+              "error_code": "GATEWAY_TIMEOUT"
+            },
+            {
+              "timestamp": "2026-01-30T19:18:38Z",
+              "level": "ERROR",
+              "message": "Order creation failed: database unavailable",
+              "source": "checkout.order",
+              "trace_id": "chk-92341-7703",
+              "error_code": "DB_UNAVAILABLE"
+            },
+            {
+              "timestamp": "2026-01-30T19:18:40Z",
+              "level": "ERROR",
+              "message": "Payment gateway timeout: no response after 10s",
+              "source": "checkout.payment",
+              "trace_id": "chk-92341-7704",
+              "error_code": "GATEWAY_TIMEOUT"
+            },
+            {
+              "timestamp": "2026-01-30T19:18:41Z",
+              "level": "FATAL",
+              "message": "Circuit breaker OPEN: payment_gateway",
+              "source": "checkout.resilience",
+              "error_code": "CIRCUIT_OPEN"
+            },
+            {
+              "timestamp": "2026-01-30T19:18:43Z",
+              "level": "ERROR",
+              "message": "Order creation failed: database unavailable",
+              "source": "checkout.order",
+              "trace_id": "chk-92341-7705",
+              "error_code": "DB_UNAVAILABLE"
+            },
+            {
+              "timestamp": "2026-01-30T19:18:45Z",
+              "level": "ERROR",
+              "message": "Inventory check failed: service unavailable",
+              "source": "checkout.inventory",
+              "trace_id": "chk-92341-7706",
+              "error_code": "SERVICE_UNAVAILABLE"
+            },
+            {
+              "timestamp": "2026-01-30T19:18:46Z",
+              "level": "WARN",
+              "message": "Request queue at maximum capacity: 500 items",
+              "source": "checkout.queue"
+            },
+            {
+              "timestamp": "2026-01-30T19:18:48Z",
+              "level": "ERROR",
+              "message": "Order creation failed: database unavailable",
+              "source": "checkout.order",
+              "trace_id": "chk-92341-7707",
+              "error_code": "DB_UNAVAILABLE"
+            },
+            {
+              "timestamp": "2026-01-30T19:18:50Z",
+              "level": "FATAL",
+              "message": "Circuit breaker OPEN: inventory_service",
+              "source": "checkout.resilience",
+              "error_code": "CIRCUIT_OPEN"
+            }
+          ],
+          "alerts": [
+            {
+              "alert_id": "ALERT-CRIT-2026-01-30-301",
+              "severity": "critical",
+              "description": "Service availability below SLA threshold",
+              "metric_name": "availability",
+              "threshold_value": 99.5,
+              "current_value": 76.3,
+              "duration": "7m 22s"
+            },
+            {
+              "alert_id": "ALERT-ERR-2026-01-30-302",
+              "severity": "critical",
+              "description": "Error rate critical",
+              "metric_name": "error_rate",
+              "threshold_value": 10,
+              "current_value": 47.8,
+              "duration": "5m 18s"
+            },
+            {
+              "alert_id": "ALERT-QUEUE-2026-01-30-303",
+              "severity": "critical",
+              "description": "Request queue at maximum capacity",
+              "metric_name": "queue_depth",
+              "threshold_value": 400,
+              "current_value": 500,
+              "duration": "3m 45s"
+            }
+          ],
+          "metrics": {
+            "error_rate": 47.8,
+            "response_time_p95": 9850,
+            "cpu_utilization": 89.4,
+            "memory_utilization": 92.7,
+            "request_rate": 78,
+            "queue_depth": 500
+          }
+        }
+      }
+    }
+  ]
+}

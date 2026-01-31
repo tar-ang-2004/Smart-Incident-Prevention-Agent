@@ -1,0 +1,593 @@
+{
+  "playbook_catalog": {
+    "metadata": {
+      "version": "1.0.0",
+      "last_updated": "2026-01-30",
+      "total_playbooks": 18
+    },
+    "playbooks": [
+      {
+        "playbook_id": "PB-001",
+        "playbook_name": "Database Connection Pool Scaling",
+        "category": "resource_exhaustion",
+        "intent": "Increase database connection pool capacity to alleviate connection starvation and restore service throughput",
+        "applicable_severity": ["MEDIUM", "HIGH", "CRITICAL"],
+        "automation_level": "semi_automated",
+        "preconditions": {
+          "required_symptoms": [
+            "Connection pool exhaustion errors",
+            "Database connection timeout errors",
+            "Thread pool saturation"
+          ],
+          "required_confidence": 0.7,
+          "environment": ["production", "staging"]
+        },
+        "constraints": {
+          "requires_human_approval": true,
+          "reason": "Database configuration changes require DBA review",
+          "rollback_available": true,
+          "estimated_execution_time": "5-15 minutes"
+        },
+        "safety_considerations": [
+          "Verify database server can handle increased connection load",
+          "Ensure connection pool scaling won't overwhelm database resources",
+          "Monitor database CPU/memory during scaling",
+          "Have rollback plan for reverting pool size"
+        ]
+      },
+      {
+        "playbook_id": "PB-002",
+        "playbook_name": "Emergency Resource Cleanup",
+        "category": "resource_exhaustion",
+        "intent": "Release accumulated resources (connections, threads, memory) to restore service capacity",
+        "applicable_severity": ["HIGH", "CRITICAL"],
+        "automation_level": "semi_automated",
+        "preconditions": {
+          "required_symptoms": [
+            "High CPU or memory utilization",
+            "Thread accumulation",
+            "Request queue buildup"
+          ],
+          "required_confidence": 0.6,
+          "environment": ["production", "staging"]
+        },
+        "constraints": {
+          "requires_human_approval": true,
+          "reason": "May involve service restart affecting active users",
+          "rollback_available": false,
+          "estimated_execution_time": "10-30 minutes",
+          "user_impact": "Brief service interruption possible"
+        },
+        "safety_considerations": [
+          "Notify users of potential brief interruption",
+          "Coordinate with traffic management for graceful restart",
+          "Verify health checks post-cleanup",
+          "Monitor for resource leak recurrence"
+        ]
+      },
+      {
+        "playbook_id": "PB-003",
+        "playbook_name": "Upstream Service Health Check and Recovery",
+        "category": "dependency_failure",
+        "intent": "Verify upstream service status, attempt recovery, and configure failover if necessary",
+        "applicable_severity": ["MEDIUM", "HIGH", "CRITICAL"],
+        "automation_level": "semi_automated",
+        "preconditions": {
+          "required_symptoms": [
+            "Upstream connection refused errors",
+            "Upstream timeout errors",
+            "Consistent upstream failure pattern"
+          ],
+          "required_confidence": 0.6,
+          "environment": ["production", "staging", "development"]
+        },
+        "constraints": {
+          "requires_human_approval": true,
+          "reason": "Upstream service investigation and failover requires coordination",
+          "rollback_available": true,
+          "estimated_execution_time": "15-45 minutes"
+        },
+        "safety_considerations": [
+          "Verify upstream service team is aware of issue",
+          "Ensure failover target is healthy before switching",
+          "Monitor cascade effects during failover",
+          "Validate data consistency post-failover"
+        ]
+      },
+      {
+        "playbook_id": "PB-004",
+        "playbook_name": "Circuit Breaker Management",
+        "category": "dependency_failure",
+        "intent": "Manage circuit breaker states to prevent cascade failures and restore service when upstream recovers",
+        "applicable_severity": ["MEDIUM", "HIGH"],
+        "automation_level": "semi_automated",
+        "preconditions": {
+          "required_symptoms": [
+            "Circuit breaker open state",
+            "Upstream service timeouts preceding circuit break",
+            "Cascading failures"
+          ],
+          "required_confidence": 0.7,
+          "environment": ["production", "staging"]
+        },
+        "constraints": {
+          "requires_human_approval": false,
+          "reason": "Circuit breaker management is low-risk operational task",
+          "rollback_available": true,
+          "estimated_execution_time": "5-10 minutes"
+        },
+        "safety_considerations": [
+          "Verify upstream service health before circuit reset",
+          "Monitor for immediate re-opening after reset",
+          "Consider half-open state for gradual recovery",
+          "Track circuit breaker health metrics"
+        ]
+      },
+      {
+        "playbook_id": "PB-005",
+        "playbook_name": "Database Index Optimization",
+        "category": "configuration_error",
+        "intent": "Add or optimize database indexes to improve query performance and reduce latency",
+        "applicable_severity": ["MEDIUM", "HIGH"],
+        "automation_level": "manual",
+        "preconditions": {
+          "required_symptoms": [
+            "Slow query warnings",
+            "Database query timeout errors",
+            "High database CPU utilization"
+          ],
+          "required_confidence": 0.7,
+          "environment": ["production", "staging"]
+        },
+        "constraints": {
+          "requires_human_approval": true,
+          "reason": "Database schema changes require DBA expertise and testing",
+          "rollback_available": true,
+          "estimated_execution_time": "30-120 minutes",
+          "testing_required": true
+        },
+        "safety_considerations": [
+          "Analyze query execution plans before index creation",
+          "Test index impact in staging environment first",
+          "Monitor index creation impact on database performance",
+          "Verify query performance improvement post-index",
+          "Consider maintenance window for large tables"
+        ]
+      },
+      {
+        "playbook_id": "PB-006",
+        "playbook_name": "Query Performance Analysis",
+        "category": "configuration_error",
+        "intent": "Analyze slow queries to identify optimization opportunities (indexing, query rewrite, caching)",
+        "applicable_severity": ["MEDIUM"],
+        "automation_level": "manual",
+        "preconditions": {
+          "required_symptoms": [
+            "Slow query warnings",
+            "Elevated query latency",
+            "Database connection pool pressure"
+          ],
+          "required_confidence": 0.6,
+          "environment": ["production", "staging", "development"]
+        },
+        "constraints": {
+          "requires_human_approval": false,
+          "reason": "Investigation activity with no service impact",
+          "rollback_available": "N/A",
+          "estimated_execution_time": "30-60 minutes",
+          "investigation_only": true
+        },
+        "safety_considerations": [
+          "Use read replicas for query analysis to avoid production impact",
+          "Capture query execution plans",
+          "Coordinate with application team for query optimization"
+        ]
+      },
+      {
+        "playbook_id": "PB-007",
+        "playbook_name": "Horizontal Service Scaling",
+        "category": "capacity_limit",
+        "intent": "Scale out service instances to handle increased load and restore performance",
+        "applicable_severity": ["MEDIUM", "HIGH", "CRITICAL"],
+        "automation_level": "semi_automated",
+        "preconditions": {
+          "required_symptoms": [
+            "High CPU or memory utilization",
+            "Request rate above capacity",
+            "Request queue buildup"
+          ],
+          "required_confidence": 0.8,
+          "environment": ["production", "staging"]
+        },
+        "constraints": {
+          "requires_human_approval": false,
+          "reason": "Autoscaling is well-tested and safe operation",
+          "rollback_available": true,
+          "estimated_execution_time": "5-15 minutes",
+          "capacity_verification_required": true
+        },
+        "safety_considerations": [
+          "Verify cluster has capacity for additional instances",
+          "Monitor new instance health checks",
+          "Ensure load balancer registers new instances",
+          "Validate scaling resolves performance issue"
+        ]
+      },
+      {
+        "playbook_id": "PB-008",
+        "playbook_name": "Load Balancing Optimization",
+        "category": "capacity_limit",
+        "intent": "Adjust load balancing configuration to improve traffic distribution and resource utilization",
+        "applicable_severity": ["MEDIUM", "HIGH"],
+        "automation_level": "semi_automated",
+        "preconditions": {
+          "required_symptoms": [
+            "Uneven instance utilization",
+            "Some instances saturated while others idle",
+            "Request distribution imbalance"
+          ],
+          "required_confidence": 0.7,
+          "environment": ["production", "staging"]
+        },
+        "constraints": {
+          "requires_human_approval": true,
+          "reason": "Load balancer configuration changes require validation",
+          "rollback_available": true,
+          "estimated_execution_time": "10-20 minutes"
+        },
+        "safety_considerations": [
+          "Verify load balancer configuration before applying",
+          "Monitor traffic distribution post-change",
+          "Ensure no instance overload during rebalancing",
+          "Have rollback plan for configuration changes"
+        ]
+      },
+      {
+        "playbook_id": "PB-009",
+        "playbook_name": "Service Restart and Health Verification",
+        "category": "software_bug",
+        "intent": "Restart affected service to clear transient errors and restore healthy state",
+        "applicable_severity": ["MEDIUM", "HIGH"],
+        "automation_level": "semi_automated",
+        "preconditions": {
+          "required_symptoms": [
+            "Service unresponsive",
+            "Memory leak indicators",
+            "Stuck thread patterns"
+          ],
+          "required_confidence": 0.6,
+          "environment": ["production", "staging"]
+        },
+        "constraints": {
+          "requires_human_approval": true,
+          "reason": "Service restart causes brief user impact",
+          "rollback_available": false,
+          "estimated_execution_time": "5-15 minutes",
+          "user_impact": "Brief service interruption during restart"
+        },
+        "safety_considerations": [
+          "Coordinate with traffic management for graceful restart",
+          "Verify health checks pass post-restart",
+          "Monitor for issue recurrence after restart",
+          "Ensure restart resolves symptoms before completing"
+        ]
+      },
+      {
+        "playbook_id": "PB-010",
+        "playbook_name": "Configuration Rollback",
+        "category": "configuration_error",
+        "intent": "Revert recent configuration changes suspected of causing service degradation",
+        "applicable_severity": ["MEDIUM", "HIGH", "CRITICAL"],
+        "automation_level": "semi_automated",
+        "preconditions": {
+          "required_symptoms": [
+            "Service degradation following configuration change",
+            "Temporal correlation with deployment or config update"
+          ],
+          "required_confidence": 0.8,
+          "environment": ["production", "staging"]
+        },
+        "constraints": {
+          "requires_human_approval": true,
+          "reason": "Configuration rollback requires validation of rollback safety",
+          "rollback_available": true,
+          "estimated_execution_time": "5-20 minutes"
+        },
+        "safety_considerations": [
+          "Verify rollback target configuration is known-good state",
+          "Ensure rollback won't cause data inconsistency",
+          "Coordinate with teams responsible for original change",
+          "Monitor for service recovery post-rollback"
+        ]
+      },
+      {
+        "playbook_id": "PB-011",
+        "playbook_name": "Failover to Secondary Region",
+        "category": "infrastructure_failure",
+        "intent": "Activate failover to secondary region or availability zone to restore service availability",
+        "applicable_severity": ["HIGH", "CRITICAL"],
+        "automation_level": "semi_automated",
+        "preconditions": {
+          "required_symptoms": [
+            "Infrastructure failure in primary region",
+            "Multiple service failures in same region",
+            "Cloud provider outage"
+          ],
+          "required_confidence": 0.7,
+          "environment": ["production"]
+        },
+        "constraints": {
+          "requires_human_approval": true,
+          "reason": "Regional failover is major operational change with broad impact",
+          "rollback_available": true,
+          "estimated_execution_time": "20-60 minutes",
+          "user_impact": "Brief service interruption during failover"
+        },
+        "safety_considerations": [
+          "Verify secondary region is healthy and ready",
+          "Ensure data replication is current",
+          "Coordinate with platform team for DNS and traffic routing",
+          "Monitor for cascading issues post-failover",
+          "Validate critical business functions in secondary region"
+        ]
+      },
+      {
+        "playbook_id": "PB-012",
+        "playbook_name": "Cache Invalidation and Rebuild",
+        "category": "configuration_error",
+        "intent": "Clear corrupted or stale cache data and rebuild from authoritative source",
+        "applicable_severity": ["MEDIUM", "HIGH"],
+        "automation_level": "semi_automated",
+        "preconditions": {
+          "required_symptoms": [
+            "Low cache hit rate",
+            "Stale data served to users",
+            "Cache inconsistency errors"
+          ],
+          "required_confidence": 0.7,
+          "environment": ["production", "staging"]
+        },
+        "constraints": {
+          "requires_human_approval": false,
+          "reason": "Cache operations are typically low-risk",
+          "rollback_available": "N/A",
+          "estimated_execution_time": "10-30 minutes",
+          "user_impact": "Temporary performance degradation during cache warm-up"
+        },
+        "safety_considerations": [
+          "Verify cache invalidation won't overload backend database",
+          "Consider gradual cache warm-up to prevent thundering herd",
+          "Monitor backend load during cache rebuild",
+          "Validate cache consistency post-rebuild"
+        ]
+      },
+      {
+        "playbook_id": "PB-013",
+        "playbook_name": "Traffic Shaping and Rate Limiting",
+        "category": "capacity_limit",
+        "intent": "Apply rate limiting or traffic shaping to protect service from overload",
+        "applicable_severity": ["MEDIUM", "HIGH"],
+        "automation_level": "semi_automated",
+        "preconditions": {
+          "required_symptoms": [
+            "Traffic spike",
+            "Service overload",
+            "DDoS indicators"
+          ],
+          "required_confidence": 0.7,
+          "environment": ["production"]
+        },
+        "constraints": {
+          "requires_human_approval": true,
+          "reason": "Rate limiting affects user experience and requires business context",
+          "rollback_available": true,
+          "estimated_execution_time": "5-15 minutes",
+          "user_impact": "Some requests may be throttled or rejected"
+        },
+        "safety_considerations": [
+          "Define appropriate rate limits based on capacity",
+          "Ensure critical users or operations are not rate-limited",
+          "Monitor rejected request rate",
+          "Communicate rate limiting to stakeholders"
+        ]
+      },
+      {
+        "playbook_id": "PB-014",
+        "playbook_name": "Network Path Validation",
+        "category": "network_issue",
+        "intent": "Diagnose network connectivity issues and validate routing, DNS, and firewall configurations",
+        "applicable_severity": ["MEDIUM", "HIGH"],
+        "automation_level": "manual",
+        "preconditions": {
+          "required_symptoms": [
+            "Network connectivity errors",
+            "DNS resolution failures",
+            "Connection timeouts"
+          ],
+          "required_confidence": 0.6,
+          "environment": ["production", "staging"]
+        },
+        "constraints": {
+          "requires_human_approval": false,
+          "reason": "Diagnostic activity with no service impact",
+          "rollback_available": "N/A",
+          "estimated_execution_time": "20-60 minutes",
+          "investigation_only": true
+        },
+        "safety_considerations": [
+          "Use network diagnostic tools from multiple vantage points",
+          "Coordinate with network operations team",
+          "Document findings for root cause analysis"
+        ]
+      },
+      {
+        "playbook_id": "PB-015",
+        "playbook_name": "Data Integrity Validation and Repair",
+        "category": "data_corruption",
+        "intent": "Validate data integrity, identify corrupted records, and restore from backup if necessary",
+        "applicable_severity": ["HIGH", "CRITICAL"],
+        "automation_level": "manual",
+        "preconditions": {
+          "required_symptoms": [
+            "Data validation errors",
+            "Processing failures on specific records",
+            "Data inconsistency reports"
+          ],
+          "required_confidence": 0.7,
+          "environment": ["production", "staging"]
+        },
+        "constraints": {
+          "requires_human_approval": true,
+          "reason": "Data repair operations require careful validation to prevent data loss",
+          "rollback_available": true,
+          "estimated_execution_time": "60-240 minutes",
+          "testing_required": true
+        },
+        "safety_considerations": [
+          "Take data snapshot before repair operations",
+          "Validate repair logic in non-production environment",
+          "Coordinate with data owners and application teams",
+          "Verify data consistency post-repair",
+          "Ensure backup recovery point is available"
+        ]
+      },
+      {
+        "playbook_id": "PB-016",
+        "playbook_name": "External Service Circuit Breaking",
+        "category": "external_service_degradation",
+        "intent": "Activate circuit breaker or fallback mode for degraded external service dependency",
+        "applicable_severity": ["MEDIUM", "HIGH"],
+        "automation_level": "semi_automated",
+        "preconditions": {
+          "required_symptoms": [
+            "External API timeouts",
+            "Third-party service errors",
+            "External dependency degradation"
+          ],
+          "required_confidence": 0.7,
+          "environment": ["production", "staging"]
+        },
+        "constraints": {
+          "requires_human_approval": false,
+          "reason": "Circuit breaking is protective mechanism with minimal risk",
+          "rollback_available": true,
+          "estimated_execution_time": "5-10 minutes",
+          "user_impact": "Degraded functionality for features dependent on external service"
+        },
+        "safety_considerations": [
+          "Ensure fallback or degraded mode provides acceptable user experience",
+          "Monitor for external service recovery",
+          "Communicate degraded functionality to users if necessary",
+          "Have plan for re-enabling external service when recovered"
+        ]
+      },
+      {
+        "playbook_id": "PB-017",
+        "playbook_name": "Memory Leak Investigation and Mitigation",
+        "category": "software_bug",
+        "intent": "Identify memory leak source through profiling and apply mitigation (restart, code fix)",
+        "applicable_severity": ["MEDIUM", "HIGH"],
+        "automation_level": "manual",
+        "preconditions": {
+          "required_symptoms": [
+            "Continuously growing memory utilization",
+            "Out of memory errors",
+            "GC thrashing"
+          ],
+          "required_confidence": 0.6,
+          "environment": ["production", "staging", "development"]
+        },
+        "constraints": {
+          "requires_human_approval": false,
+          "reason": "Investigation activity, though may lead to service restart",
+          "rollback_available": "N/A",
+          "estimated_execution_time": "60-180 minutes",
+          "investigation_only": true
+        },
+        "safety_considerations": [
+          "Capture heap dumps before restarting service",
+          "Analyze memory profiles offline",
+          "Coordinate with development team for code fix",
+          "Plan for gradual rollout of fix"
+        ]
+      },
+      {
+        "playbook_id": "PB-018",
+        "playbook_name": "Gradual Traffic Ramp for Service Recovery",
+        "category": "resource_exhaustion",
+        "intent": "Gradually increase traffic to recovering service to prevent immediate re-saturation",
+        "applicable_severity": ["MEDIUM", "HIGH"],
+        "automation_level": "semi_automated",
+        "preconditions": {
+          "required_symptoms": [
+            "Service recovering from failure",
+            "Resource saturation resolved",
+            "Health checks passing"
+          ],
+          "required_confidence": 0.8,
+          "environment": ["production", "staging"]
+        },
+        "constraints": {
+          "requires_human_approval": false,
+          "reason": "Traffic ramping is controlled and reversible",
+          "rollback_available": true,
+          "estimated_execution_time": "30-60 minutes",
+          "user_impact": "Some users may experience temporary reduced capacity"
+        },
+        "safety_considerations": [
+          "Monitor service health during traffic ramp",
+          "Define ramp schedule (e.g., 10% increments every 5 minutes)",
+          "Be prepared to reduce traffic if service degrades",
+          "Validate full capacity handling before completing ramp"
+        ]
+      }
+    ],
+    "playbook_mapping": {
+      "resource_exhaustion": [
+        "PB-001",
+        "PB-002",
+        "PB-018"
+      ],
+      "dependency_failure": [
+        "PB-003",
+        "PB-004"
+      ],
+      "configuration_error": [
+        "PB-005",
+        "PB-006",
+        "PB-010",
+        "PB-012"
+      ],
+      "capacity_limit": [
+        "PB-007",
+        "PB-008",
+        "PB-013"
+      ],
+      "network_issue": [
+        "PB-014"
+      ],
+      "software_bug": [
+        "PB-009",
+        "PB-017"
+      ],
+      "data_corruption": [
+        "PB-015"
+      ],
+      "external_service_degradation": [
+        "PB-016"
+      ],
+      "infrastructure_failure": [
+        "PB-011"
+      ]
+    },
+    "usage_notes": {
+      "selection_guidance": "Response Planning Agent should map root cause category to playbooks using playbook_mapping, then rank by applicability score based on symptom match, severity alignment, and environmental constraints.",
+      "automation_levels": {
+        "fully_automated": "May be executed without human approval (typically non-production or low-risk operations)",
+        "semi_automated": "Prepared for execution but requires human approval before proceeding",
+        "manual": "Requires human investigation and manual execution (investigation activities or high-risk operations)"
+      },
+      "maintenance": "Playbook catalog should be reviewed quarterly and updated based on operational learnings and new failure patterns."
+    }
+  }
+}

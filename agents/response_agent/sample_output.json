@@ -1,0 +1,1146 @@
+{
+  "response_plans": [
+    {
+      "scenario_name": "critical_cascading_failure_response",
+      "description": "Emergency response plan for checkout service cascading failure",
+      "output": {
+        "response_plan_id": "rplan-2026-01-30-004-r7k9",
+        "diagnosis_id": "diag-2026-01-30-004-w3n5",
+        "escalation_id": "esc-2026-01-30-004-e1a5",
+        "timestamp": "2026-01-30T19:18:57Z",
+        "response_strategy": {
+          "strategy_type": "immediate",
+          "strategy_rationale": "CRITICAL severity with cascading failure across multiple revenue-generating services. 47.8% transaction failure rate, severe SLA breach occurred, impact is immediate and accelerating. Requires emergency response with highest priority.",
+          "execution_urgency": "emergency",
+          "maximum_response_time": "5 minutes",
+          "decision_factors": [
+            "Severity CRITICAL with cascading failure pattern",
+            "Revenue-generating checkout process severely impaired (47.8% failure)",
+            "Multiple critical services affected (checkout, payment, inventory)",
+            "SLA breach severe (76.3% vs 99.5% target)",
+            "System degradation duration 7+ minutes and accelerating",
+            "Diagnostic confidence very high (0.95)"
+          ]
+        },
+        "selected_playbooks": [
+          {
+            "rank": 1,
+            "playbook_id": "PB-001",
+            "playbook_name": "Database Connection Pool Recovery - Emergency Scale",
+            "selection_rationale": "Directly addresses root cause: database connection pool exhaustion. Emergency scaling and reconfiguration required to restore connection capacity.",
+            "applicability_score": 0.98,
+            "automation_feasibility": "semi-automated",
+            "estimated_duration": "5-10 minutes",
+            "prerequisites_met": true,
+            "risk_assessment": "Medium risk: Pool reconfiguration requires careful parameter tuning to avoid overcorrection or resource starvation."
+          },
+          {
+            "rank": 2,
+            "playbook_id": "PB-011",
+            "playbook_name": "Circuit Breaker Reset with Health Verification",
+            "selection_rationale": "Addresses cascading circuit breaker failures in payment gateway and inventory service. Must reset breakers after connection pool recovery.",
+            "applicability_score": 0.92,
+            "automation_feasibility": "semi-automated",
+            "estimated_duration": "3-5 minutes",
+            "prerequisites_met": false,
+            "prerequisites": [
+              "Database connection pool must be recovered first",
+              "Upstream service health verification required before reset"
+            ],
+            "risk_assessment": "Low risk if connection pool recovered; High risk if pool still exhausted (will re-trigger failures)."
+          },
+          {
+            "rank": 3,
+            "playbook_id": "PB-007",
+            "playbook_name": "Request Queue Drain and Rate Limiting",
+            "selection_rationale": "Request queue at maximum capacity (500/500). Draining queue and implementing temporary rate limiting will prevent re-saturation during recovery.",
+            "applicability_score": 0.88,
+            "automation_feasibility": "automated",
+            "estimated_duration": "2-3 minutes",
+            "prerequisites_met": true,
+            "risk_assessment": "Low risk: Defensive measure to prevent re-occurrence during stabilization."
+          },
+          {
+            "rank": 4,
+            "playbook_id": "PB-015",
+            "playbook_name": "Emergency Traffic Diversion",
+            "selection_rationale": "CONTINGENCY: If connection pool recovery fails, divert traffic to backup region or enable graceful degradation mode.",
+            "applicability_score": 0.75,
+            "automation_feasibility": "human-led",
+            "estimated_duration": "10-15 minutes",
+            "prerequisites_met": false,
+            "prerequisites": [
+              "Backup region capacity verification",
+              "DNS/load balancer reconfiguration approval"
+            ],
+            "risk_assessment": "High risk: Regional failover may cause data consistency issues and requires business approval."
+          }
+        ],
+        "human_in_loop": {
+          "classification": "semi-automated",
+          "approval_required": true,
+          "approval_scope": [
+            "Database connection pool parameter changes (max_connections, timeout values)",
+            "Circuit breaker reset timing and sequencing",
+            "Decision to activate contingency playbook (traffic diversion) if primary recovery fails"
+          ],
+          "approval_timeout": "3 minutes",
+          "fallback_if_no_approval": "Escalate to on-call SRE and incident commander. Do NOT proceed with automated actions without approval.",
+          "recommended_approvers": [
+            "On-call SRE",
+            "Database Administrator",
+            "Incident Commander"
+          ],
+          "rationale": "CRITICAL severity incident affecting revenue requires human oversight for database parameter changes and circuit breaker coordination. Automated execution could worsen cascade if parameters incorrectly set."
+        },
+        "escalation_decisions": {
+          "escalation_required": true,
+          "escalation_targets": [
+            {
+              "target": "on_call_sre",
+              "priority": "P0",
+              "notification_method": "page",
+              "rationale": "CRITICAL incident requires immediate SRE engagement for emergency response coordination and approval."
+            },
+            {
+              "target": "database_administrator",
+              "priority": "P0",
+              "notification_method": "page",
+              "rationale": "Database connection pool emergency scaling requires DBA expertise and approval."
+            },
+            {
+              "target": "incident_commander",
+              "priority": "P0",
+              "notification_method": "page",
+              "rationale": "Cascading failure across multiple critical services requires incident commander coordination."
+            },
+            {
+              "target": "engineering_leadership",
+              "priority": "P1",
+              "notification_method": "email",
+              "rationale": "CRITICAL severity with revenue impact requires leadership awareness."
+            }
+          ],
+          "escalation_context": {
+            "severity": "CRITICAL",
+            "user_impact": "47.8% of e-commerce transactions failing",
+            "business_impact": "Direct revenue loss from failed checkout transactions",
+            "duration": "7+ minutes and accelerating",
+            "blast_radius": "Cascading across checkout, payment, inventory services",
+            "recommended_actions": "Emergency database connection pool scaling, circuit breaker reset, request queue drain"
+          }
+        },
+        "execution_payload": {
+          "playbook_sequence": [
+            {
+              "step": 1,
+              "playbook_id": "PB-001",
+              "action": "Emergency database connection pool scaling",
+              "automation_level": "semi-automated",
+              "requires_approval": true,
+              "estimated_duration": "5-10 minutes"
+            },
+            {
+              "step": 2,
+              "playbook_id": "PB-007",
+              "action": "Request queue drain and rate limiting activation",
+              "automation_level": "automated",
+              "requires_approval": false,
+              "estimated_duration": "2-3 minutes",
+              "dependency": "Can execute in parallel with step 1"
+            },
+            {
+              "step": 3,
+              "playbook_id": "PB-011",
+              "action": "Circuit breaker reset for payment and inventory services",
+              "automation_level": "semi-automated",
+              "requires_approval": true,
+              "estimated_duration": "3-5 minutes",
+              "dependency": "Requires step 1 completion and health verification"
+            },
+            {
+              "step": 4,
+              "playbook_id": "PB-015",
+              "action": "CONTINGENCY: Traffic diversion if recovery unsuccessful",
+              "automation_level": "human-led",
+              "requires_approval": true,
+              "estimated_duration": "10-15 minutes",
+              "trigger_condition": "If steps 1-3 do not restore >95% availability within 15 minutes"
+            }
+          ],
+          "monitoring_requirements": [
+            "Database connection pool utilization (target: <70%)",
+            "Checkout service error rate (target: <1%)",
+            "Payment gateway circuit breaker state (target: CLOSED)",
+            "Inventory service circuit breaker state (target: CLOSED)",
+            "Request queue depth (target: <100)",
+            "Overall transaction success rate (target: >99%)"
+          ],
+          "rollback_plan": {
+            "description": "If connection pool scaling causes instability, rollback to previous configuration and activate traffic diversion playbook.",
+            "rollback_triggers": [
+              "Database connection pool utilization >95% after scaling",
+              "Error rate increases above 50%",
+              "Database server resource exhaustion"
+            ],
+            "rollback_playbook": "PB-015"
+          }
+        },
+        "safety_controls": {
+          "pre_execution_checks": [
+            "Verify database server has capacity for increased connection pool size",
+            "Confirm backup region availability if contingency needed",
+            "Validate circuit breaker health check endpoints are responsive",
+            "Verify no concurrent database maintenance in progress"
+          ],
+          "execution_safeguards": [
+            "Increment connection pool size gradually (25% steps) with health checks between increments",
+            "Monitor database server CPU/memory during pool scaling",
+            "Circuit breaker reset only after confirming upstream service health",
+            "Rate limiting applied during recovery to prevent re-saturation"
+          ],
+          "risk_mitigation": [
+            {
+              "risk": "Connection pool scaling causes database server resource exhaustion",
+              "mitigation": "Monitor database server resources in real-time; rollback if CPU >90% or memory >95%",
+              "likelihood": "low"
+            },
+            {
+              "risk": "Circuit breaker reset before pool recovery causes immediate re-trip",
+              "mitigation": "Enforce sequential execution with health verification between steps",
+              "likelihood": "medium"
+            },
+            {
+              "risk": "Traffic diversion causes data consistency issues",
+              "mitigation": "Human-led approval required; verify data replication status before failover",
+              "likelihood": "low"
+            }
+          ],
+          "blast_radius_containment": "Actions scoped to checkout service database and dependent services. No changes to unaffected systems."
+        },
+        "uncertainty_handling": {
+          "known_uncertainties": [
+            "Root cause of initial connection pool exhaustion not yet identified"
+          ],
+          "mitigation_actions": [
+            "Parallel investigation task: Analyze database slow query logs and connection acquisition patterns to identify why pool exhausted",
+            "Post-incident action: Review connection pool sizing and timeout configurations",
+            "Monitoring: Watch for re-occurrence after recovery to identify if external traffic spike or application bug"
+          ],
+          "confidence_in_plan": 0.92,
+          "confidence_rationale": "High confidence in playbook effectiveness for connection pool exhaustion (well-understood failure mode). Slight uncertainty around root cause of initial exhaustion may require additional remediation post-recovery."
+        },
+        "ticketing_payload": {
+          "ticket_type": "incident",
+          "severity": "P0",
+          "priority": "critical",
+          "title": "CRITICAL: Checkout Service Cascading Failure - Database Connection Pool Exhaustion",
+          "description": "CRITICAL incident: Checkout service experiencing cascading failure with 47.8% transaction failure rate. Root cause: Database connection pool exhaustion triggering circuit breaker failures in payment gateway and inventory service. Immediate emergency response required.",
+          "affected_services": [
+            "checkout_service_prod",
+            "payment_gateway_service",
+            "inventory_service"
+          ],
+          "root_cause_summary": "Database connection pool exhaustion creating cascading circuit breaker failures",
+          "impact_summary": "47.8% checkout transaction failures, severe SLA breach (76.3% vs 99.5%), direct revenue loss",
+          "recommended_actions": [
+            "Emergency database connection pool scaling (PB-001)",
+            "Request queue drain and rate limiting (PB-007)",
+            "Circuit breaker reset post-recovery (PB-011)",
+            "Contingency: Traffic diversion if recovery unsuccessful (PB-015)"
+          ],
+          "estimated_resolution_time": "15-30 minutes",
+          "assigned_team": "SRE On-Call",
+          "escalation_contacts": [
+            "On-call SRE",
+            "Database Administrator",
+            "Incident Commander"
+          ],
+          "metadata": {
+            "diagnosis_id": "diag-2026-01-30-004-w3n5",
+            "response_plan_id": "rplan-2026-01-30-004-r7k9",
+            "diagnostic_confidence": 0.95,
+            "response_confidence": 0.92
+          }
+        },
+        "decision_audit_trail": {
+          "strategy_selection": {
+            "decision": "immediate response strategy",
+            "reasoning": "CRITICAL severity, cascading failure, 47.8% transaction failure, revenue impact, SLA breach severe",
+            "alternatives_considered": [
+              "Urgent response (rejected: severity too high for delayed response)",
+              "Planned response (rejected: immediate impact requires emergency action)"
+            ]
+          },
+          "playbook_selection": {
+            "primary_playbook": "PB-001 (Database Connection Pool Recovery)",
+            "reasoning": "Directly addresses root cause with high confidence (0.95). Proven effectiveness for connection pool exhaustion scenarios.",
+            "alternatives_considered": [
+              "PB-015 (Traffic Diversion) as primary (rejected: more disruptive, should be contingency only)",
+              "PB-002 (Application Restart) (rejected: does not address connection pool root cause)"
+            ]
+          },
+          "human_in_loop_decision": {
+            "classification": "semi-automated",
+            "reasoning": "CRITICAL severity and database parameter changes require human oversight. Automated execution risks worsening cascade if misconfigured.",
+            "alternatives_considered": [
+              "Fully automated (rejected: too risky for CRITICAL severity with database changes)",
+              "Human-led (rejected: delays emergency response unnecessarily)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario_name": "high_severity_resource_exhaustion_response",
+      "description": "Urgent response plan for payment gateway resource saturation",
+      "output": {
+        "response_plan_id": "rplan-2026-01-30-001-m3x8",
+        "diagnosis_id": "diag-2026-01-30-001-x9k7",
+        "escalation_id": "esc-2026-01-30-001-a7f3",
+        "timestamp": "2026-01-30T14:23:49Z",
+        "response_strategy": {
+          "strategy_type": "urgent",
+          "strategy_rationale": "HIGH severity with significant user and revenue impact. 18% payment transaction failures, resource exhaustion feedback loop, SLA breach occurred. Requires urgent response within 15-30 minutes to prevent escalation to CRITICAL.",
+          "execution_urgency": "high",
+          "maximum_response_time": "30 minutes",
+          "decision_factors": [
+            "Severity HIGH with resource exhaustion feedback loop",
+            "18% payment transaction failure rate (revenue impact)",
+            "Multi-resource saturation (CPU 97%, memory 95%, threads 98%)",
+            "SLA breach occurred",
+            "Degradation ongoing 6+ minutes with risk of complete failure",
+            "Diagnostic confidence high (0.92)"
+          ]
+        },
+        "selected_playbooks": [
+          {
+            "rank": 1,
+            "playbook_id": "PB-001",
+            "playbook_name": "Database Connection Pool Recovery - Emergency Scale",
+            "selection_rationale": "Primary hypothesis: Connection pool exhaustion creating feedback loop. Scaling pool capacity should break the resource starvation cycle.",
+            "applicability_score": 0.95,
+            "automation_feasibility": "semi-automated",
+            "estimated_duration": "10-15 minutes",
+            "prerequisites_met": true,
+            "risk_assessment": "Medium risk: Must monitor database server capacity during pool scaling."
+          },
+          {
+            "rank": 2,
+            "playbook_id": "PB-003",
+            "playbook_name": "Horizontal Pod Autoscaling Acceleration",
+            "selection_rationale": "CPU and memory at 97%/95% saturation. Horizontal scaling will distribute load and reduce per-instance resource pressure.",
+            "applicability_score": 0.88,
+            "automation_feasibility": "automated",
+            "estimated_duration": "5-8 minutes",
+            "prerequisites_met": true,
+            "risk_assessment": "Low risk: Kubernetes HPA can safely add replicas. Monitor cluster capacity."
+          },
+          {
+            "rank": 3,
+            "playbook_id": "PB-007",
+            "playbook_name": "Request Queue Drain and Rate Limiting",
+            "selection_rationale": "Request queue at 387 items. Draining queue and applying rate limiting will reduce immediate load while connection pool and scaling actions take effect.",
+            "applicability_score": 0.82,
+            "automation_feasibility": "automated",
+            "estimated_duration": "3-5 minutes",
+            "prerequisites_met": true,
+            "risk_assessment": "Low risk: Defensive measure to prevent further saturation."
+          }
+        ],
+        "human_in_loop": {
+          "classification": "semi-automated",
+          "approval_required": true,
+          "approval_scope": [
+            "Database connection pool scaling parameters",
+            "Rate limiting thresholds (must balance protection vs user impact)"
+          ],
+          "approval_timeout": "10 minutes",
+          "fallback_if_no_approval": "Proceed with automated horizontal scaling only (PB-003). Escalate connection pool changes to DBA.",
+          "recommended_approvers": [
+            "On-call SRE",
+            "Database Administrator (for connection pool changes)"
+          ],
+          "rationale": "HIGH severity with revenue impact requires oversight for database changes. Horizontal scaling can proceed automatically with lower risk."
+        },
+        "escalation_decisions": {
+          "escalation_required": true,
+          "escalation_targets": [
+            {
+              "target": "on_call_sre",
+              "priority": "P1",
+              "notification_method": "page",
+              "rationale": "HIGH severity incident with revenue impact requires SRE immediate response."
+            },
+            {
+              "target": "database_administrator",
+              "priority": "P1",
+              "notification_method": "page",
+              "rationale": "Connection pool scaling requires DBA expertise and approval."
+            },
+            {
+              "target": "payment_team_lead",
+              "priority": "P2",
+              "notification_method": "slack",
+              "rationale": "Payment service owner should be aware of ongoing degradation."
+            }
+          ],
+          "escalation_context": {
+            "severity": "HIGH",
+            "user_impact": "18% of payment transactions failing",
+            "business_impact": "Revenue loss from failed payment transactions",
+            "duration": "6+ minutes with risk of escalation",
+            "blast_radius": "Payment gateway service, potential cascade to dependent services",
+            "recommended_actions": "Connection pool scaling, horizontal pod autoscaling, rate limiting"
+          }
+        },
+        "execution_payload": {
+          "playbook_sequence": [
+            {
+              "step": 1,
+              "playbook_id": "PB-003",
+              "action": "Horizontal pod autoscaling - add payment service replicas",
+              "automation_level": "automated",
+              "requires_approval": false,
+              "estimated_duration": "5-8 minutes",
+              "note": "Can execute immediately to provide fast relief"
+            },
+            {
+              "step": 2,
+              "playbook_id": "PB-007",
+              "action": "Activate rate limiting and drain request queue",
+              "automation_level": "automated",
+              "requires_approval": false,
+              "estimated_duration": "3-5 minutes",
+              "dependency": "Can execute in parallel with step 1"
+            },
+            {
+              "step": 3,
+              "playbook_id": "PB-001",
+              "action": "Database connection pool scaling",
+              "automation_level": "semi-automated",
+              "requires_approval": true,
+              "estimated_duration": "10-15 minutes",
+              "dependency": "Wait for DBA approval; can execute in parallel with steps 1-2"
+            }
+          ],
+          "monitoring_requirements": [
+            "CPU utilization (target: <75%)",
+            "Memory utilization (target: <80%)",
+            "Database connection pool utilization (target: <70%)",
+            "Payment transaction error rate (target: <2%)",
+            "Request queue depth (target: <50)",
+            "Thread pool utilization (target: <80%)"
+          ],
+          "success_criteria": {
+            "recovery_targets": [
+              "Error rate below 2%",
+              "CPU utilization sustained below 75%",
+              "Memory utilization sustained below 80%",
+              "Request queue depth below 50"
+            ],
+            "recovery_timeout": "30 minutes"
+          }
+        },
+        "safety_controls": {
+          "pre_execution_checks": [
+            "Verify Kubernetes cluster has capacity for additional payment service pods",
+            "Confirm database server can handle increased connection pool",
+            "Validate rate limiting thresholds won't over-restrict legitimate traffic"
+          ],
+          "execution_safeguards": [
+            "Gradual connection pool scaling with health checks",
+            "Monitor cluster resource capacity during horizontal scaling",
+            "Rate limiting with gradual threshold adjustment based on recovery"
+          ],
+          "risk_mitigation": [
+            {
+              "risk": "Horizontal scaling exhausts cluster capacity",
+              "mitigation": "Monitor cluster CPU/memory; cap autoscaling at safe threshold",
+              "likelihood": "low"
+            },
+            {
+              "risk": "Rate limiting too aggressive, impacts legitimate users",
+              "mitigation": "Set rate limits at 80% of observed peak; adjust based on recovery",
+              "likelihood": "medium"
+            }
+          ],
+          "blast_radius_containment": "Actions scoped to payment gateway service only. No changes to dependent services unless cascade detected."
+        },
+        "uncertainty_handling": {
+          "known_uncertainties": [
+            "Traffic volume baseline unknown - cannot confirm if current 142 req/s is abnormal",
+            "Database server health unknown - may have independent performance issues"
+          ],
+          "mitigation_actions": [
+            "Parallel monitoring: Track traffic volume trends to identify if spike is cause",
+            "Database health check: SRE should verify database server metrics independently",
+            "Post-incident analysis: Establish traffic baselines and connection pool sizing guidelines"
+          ],
+          "confidence_in_plan": 0.85,
+          "confidence_rationale": "Good confidence in addressing connection pool exhaustion. Some uncertainty due to incomplete baseline metrics and database visibility."
+        },
+        "ticketing_payload": {
+          "ticket_type": "incident",
+          "severity": "P1",
+          "priority": "high",
+          "title": "HIGH: Payment Gateway Resource Exhaustion - Connection Pool Saturation",
+          "description": "Payment gateway experiencing severe resource exhaustion with 18% transaction failure rate. Root cause: Database connection pool exhaustion creating feedback loop with CPU/memory pressure. Urgent response required.",
+          "affected_services": [
+            "payment_gateway_prod"
+          ],
+          "root_cause_summary": "Database connection pool exhaustion creating resource starvation feedback loop",
+          "impact_summary": "18% payment transaction failures, revenue at risk, SLA breach occurred",
+          "recommended_actions": [
+            "Horizontal pod autoscaling (PB-003)",
+            "Request queue drain and rate limiting (PB-007)",
+            "Database connection pool scaling (PB-001)"
+          ],
+          "estimated_resolution_time": "30-45 minutes",
+          "assigned_team": "SRE On-Call",
+          "escalation_contacts": [
+            "On-call SRE",
+            "Database Administrator",
+            "Payment Team Lead"
+          ],
+          "metadata": {
+            "diagnosis_id": "diag-2026-01-30-001-x9k7",
+            "response_plan_id": "rplan-2026-01-30-001-m3x8",
+            "diagnostic_confidence": 0.92,
+            "response_confidence": 0.85
+          }
+        },
+        "decision_audit_trail": {
+          "strategy_selection": {
+            "decision": "urgent response strategy",
+            "reasoning": "HIGH severity with 18% revenue-impacting failures, resource exhaustion feedback loop, requires urgent action within 30 minutes",
+            "alternatives_considered": [
+              "Immediate response (rejected: not yet CRITICAL severity, 30-minute window acceptable)",
+              "Planned response (rejected: revenue impact and SLA breach require urgent action)"
+            ]
+          },
+          "playbook_selection": {
+            "primary_playbook": "PB-001 (Connection Pool Recovery)",
+            "reasoning": "Primary hypothesis (92% confidence) is connection pool exhaustion. Horizontal scaling provides immediate relief.",
+            "alternatives_considered": [
+              "PB-002 (Application Restart) (rejected: doesn't address root cause, disruptive)",
+              "PB-005 (Vertical Scaling) (rejected: slower than horizontal scaling, doesn't address pool issue)"
+            ]
+          },
+          "human_in_loop_decision": {
+            "classification": "semi-automated",
+            "reasoning": "Database changes require approval, but horizontal scaling can proceed automatically for faster response.",
+            "alternatives_considered": [
+              "Fully automated (rejected: database pool changes too risky without approval)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario_name": "medium_severity_dependency_failure_response",
+      "description": "Planned response for API gateway upstream connection failures",
+      "output": {
+        "response_plan_id": "rplan-2026-01-30-003-p5t1",
+        "diagnosis_id": "diag-2026-01-30-003-z7p9",
+        "escalation_id": "esc-2026-01-30-003-c9d2",
+        "timestamp": "2026-01-30T16:05:37Z",
+        "response_strategy": {
+          "strategy_type": "planned",
+          "strategy_rationale": "MEDIUM severity with partial impact (11.7% failure rate). Root cause requires investigation to identify failed upstream service. Not immediately critical but requires structured response within 1-2 hours.",
+          "execution_urgency": "medium",
+          "maximum_response_time": "2 hours",
+          "decision_factors": [
+            "Severity MEDIUM with partial impact (88% requests still succeeding)",
+            "Error rate moderate at 11.7%",
+            "Gateway infrastructure healthy, issue localized to specific upstream route",
+            "Diagnostic confidence moderate (0.75) with significant uncertainties",
+            "SLA breach imminent but not yet occurred",
+            "Duration relatively short (2 minutes), may self-resolve"
+          ]
+        },
+        "selected_playbooks": [
+          {
+            "rank": 1,
+            "playbook_id": "PB-009",
+            "playbook_name": "Dependency Health Investigation and Recovery",
+            "selection_rationale": "Primary hypothesis is upstream service failure. Investigation required to identify failed service and determine recovery action.",
+            "applicability_score": 0.90,
+            "automation_feasibility": "semi-automated",
+            "estimated_duration": "15-30 minutes",
+            "prerequisites_met": false,
+            "prerequisites": [
+              "Identify upstream service from gateway routing configuration",
+              "Access to upstream service logs and health endpoints"
+            ],
+            "risk_assessment": "Low risk: Investigation playbook with no invasive actions until root cause confirmed."
+          },
+          {
+            "rank": 2,
+            "playbook_id": "PB-011",
+            "playbook_name": "Circuit Breaker Reset with Health Verification",
+            "selection_rationale": "If upstream service recovers, circuit breaker pattern may be preventing reconnection. Conditional playbook pending investigation results.",
+            "applicability_score": 0.70,
+            "automation_feasibility": "semi-automated",
+            "estimated_duration": "5-10 minutes",
+            "prerequisites_met": false,
+            "prerequisites": [
+              "Upstream service health verification",
+              "Confirmation that CONNECTION_REFUSED errors are due to circuit breaker, not actual service failure"
+            ],
+            "risk_assessment": "Low risk: Only execute if upstream service healthy."
+          },
+          {
+            "rank": 3,
+            "playbook_id": "PB-013",
+            "playbook_name": "Graceful Degradation Activation",
+            "selection_rationale": "If upstream service cannot be recovered quickly, enable graceful degradation for affected API routes to improve user experience.",
+            "applicability_score": 0.65,
+            "automation_feasibility": "semi-automated",
+            "estimated_duration": "10-15 minutes",
+            "prerequisites_met": false,
+            "prerequisites": [
+              "Identify criticality of failed upstream service",
+              "Define degraded functionality behavior",
+              "Business approval if degraded mode affects revenue features"
+            ],
+            "risk_assessment": "Medium risk: Graceful degradation may mask underlying issue; requires clear monitoring to ensure upstream is recovered."
+          }
+        ],
+        "human_in_loop": {
+          "classification": "semi-automated",
+          "approval_required": true,
+          "approval_scope": [
+            "Graceful degradation activation (if upstream service cannot be recovered quickly)",
+            "Circuit breaker reset timing (to avoid premature reset)"
+          ],
+          "approval_timeout": "30 minutes",
+          "fallback_if_no_approval": "Continue monitoring. If error rate exceeds 20% or duration exceeds 15 minutes, escalate to urgent response.",
+          "recommended_approvers": [
+            "On-call SRE",
+            "API Gateway Team Lead"
+          ],
+          "rationale": "MEDIUM severity allows time for investigation before action. Graceful degradation may affect user functionality and requires approval."
+        },
+        "escalation_decisions": {
+          "escalation_required": true,
+          "escalation_targets": [
+            {
+              "target": "on_call_sre",
+              "priority": "P2",
+              "notification_method": "slack",
+              "rationale": "MEDIUM severity requires SRE awareness and investigation coordination."
+            },
+            {
+              "target": "api_gateway_team",
+              "priority": "P2",
+              "notification_method": "slack",
+              "rationale": "Gateway team should investigate routing configuration and identify failed upstream service."
+            },
+            {
+              "target": "upstream_service_owner",
+              "priority": "P2",
+              "notification_method": "slack",
+              "note": "To be determined after upstream service identified during investigation.",
+              "rationale": "Upstream service owner required for service recovery or health verification."
+            }
+          ],
+          "escalation_context": {
+            "severity": "MEDIUM",
+            "user_impact": "11.7% of API requests failing",
+            "business_impact": "Partial functionality degradation, scope depends on upstream service criticality",
+            "duration": "2+ minutes, SLA breach imminent if continues",
+            "blast_radius": "Localized to specific upstream service route",
+            "recommended_actions": "Investigate upstream service identity and health, determine recovery or degradation strategy"
+          }
+        },
+        "execution_payload": {
+          "playbook_sequence": [
+            {
+              "step": 1,
+              "playbook_id": "PB-009",
+              "action": "Investigate gateway routing to identify failed upstream service",
+              "automation_level": "semi-automated",
+              "requires_approval": false,
+              "estimated_duration": "10-15 minutes",
+              "note": "Investigation phase - low risk"
+            },
+            {
+              "step": 2,
+              "playbook_id": "PB-009",
+              "action": "Check upstream service health and logs to determine failure cause",
+              "automation_level": "semi-automated",
+              "requires_approval": false,
+              "estimated_duration": "10-15 minutes",
+              "dependency": "Requires step 1 completion to identify upstream service"
+            },
+            {
+              "step": 3,
+              "playbook_id": "PB-011",
+              "action": "CONDITIONAL: If upstream healthy, reset circuit breaker",
+              "automation_level": "semi-automated",
+              "requires_approval": true,
+              "estimated_duration": "5-10 minutes",
+              "trigger_condition": "Upstream service health check passes",
+              "dependency": "Requires step 2 completion"
+            },
+            {
+              "step": 4,
+              "playbook_id": "PB-013",
+              "action": "CONDITIONAL: If upstream cannot recover, activate graceful degradation",
+              "automation_level": "semi-automated",
+              "requires_approval": true,
+              "estimated_duration": "10-15 minutes",
+              "trigger_condition": "Upstream service cannot recover within 30 minutes OR criticality assessment determines degradation acceptable",
+              "dependency": "Requires step 2 completion and business approval if revenue-affecting"
+            }
+          ],
+          "monitoring_requirements": [
+            "API gateway error rate (escalate if exceeds 20%)",
+            "CONNECTION_REFUSED error frequency",
+            "Upstream service health endpoint status",
+            "Overall API availability (target: >95%)",
+            "Duration monitoring (escalate if exceeds 15 minutes)"
+          ],
+          "decision_tree": {
+            "investigation_outcomes": [
+              {
+                "finding": "Upstream service crashed or unresponsive",
+                "action": "Coordinate with upstream service owner for service restart or recovery",
+                "playbook": "PB-009"
+              },
+              {
+                "finding": "Upstream service healthy but circuit breaker open",
+                "action": "Reset circuit breaker after health verification",
+                "playbook": "PB-011"
+              },
+              {
+                "finding": "Network connectivity issue",
+                "action": "Escalate to network operations team for infrastructure investigation",
+                "playbook": "Network escalation"
+              },
+              {
+                "finding": "Upstream service cannot recover quickly",
+                "action": "Activate graceful degradation if acceptable",
+                "playbook": "PB-013"
+              }
+            ]
+          }
+        },
+        "safety_controls": {
+          "pre_execution_checks": [
+            "Identify upstream service and its criticality before taking action",
+            "Verify no concurrent deployments or maintenance on upstream service",
+            "Assess business impact of graceful degradation before activation"
+          ],
+          "execution_safeguards": [
+            "Investigation-first approach: No invasive actions until root cause confirmed",
+            "Circuit breaker reset only after upstream health verification",
+            "Graceful degradation requires approval if affects revenue features",
+            "Continuous monitoring during investigation to detect escalation"
+          ],
+          "risk_mitigation": [
+            {
+              "risk": "Premature circuit breaker reset causes immediate re-failure",
+              "mitigation": "Enforce upstream health check before reset; monitor for re-failure pattern",
+              "likelihood": "medium"
+            },
+            {
+              "risk": "Graceful degradation masks underlying issue, delays proper fix",
+              "mitigation": "Set clear monitoring and recovery timeline; create follow-up ticket for upstream service fix",
+              "likelihood": "medium"
+            },
+            {
+              "risk": "Investigation delay allows severity escalation",
+              "mitigation": "Set error rate and duration thresholds for automatic escalation to urgent response",
+              "likelihood": "low"
+            }
+          ],
+          "blast_radius_containment": "Actions scoped to affected API route and identified upstream service only. Gateway infrastructure not modified."
+        },
+        "uncertainty_handling": {
+          "known_uncertainties": [
+            "Upstream service identity unknown from current signals",
+            "Upstream service criticality and business impact unknown",
+            "Root cause unclear: service failure vs network issue",
+            "No baseline error rate to assess if 11.7% is abnormal"
+          ],
+          "mitigation_actions": [
+            "Step 1: Investigation playbook to identify upstream service and assess criticality",
+            "Step 2: Access upstream service logs and health endpoints to determine failure mode",
+            "Step 3: Network diagnostics if service appears healthy but connections refused",
+            "Escalation rule: If investigation does not yield clear diagnosis within 30 minutes, escalate to senior SRE"
+          ],
+          "confidence_in_plan": 0.70,
+          "confidence_rationale": "Moderate confidence due to significant uncertainties. Plan is investigation-focused with conditional actions based on findings. Success depends on ability to quickly identify and access upstream service."
+        },
+        "ticketing_payload": {
+          "ticket_type": "incident",
+          "severity": "P2",
+          "priority": "medium",
+          "title": "MEDIUM: API Gateway Upstream Connection Failures - Investigation Required",
+          "description": "API gateway experiencing upstream service connection failures with 11.7% request failure rate. Root cause: Upstream service likely crashed or unresponsive (CONNECTION_REFUSED errors). Investigation required to identify upstream service and coordinate recovery.",
+          "affected_services": [
+            "api_gateway_prod",
+            "unknown_upstream_service"
+          ],
+          "root_cause_summary": "Upstream service connection refused - likely service crash or network issue",
+          "impact_summary": "11.7% API request failures, partial functionality degradation, SLA breach imminent",
+          "recommended_actions": [
+            "Investigate gateway routing to identify failed upstream service (PB-009)",
+            "Check upstream service health and coordinate recovery",
+            "CONDITIONAL: Reset circuit breaker if upstream healthy (PB-011)",
+            "CONDITIONAL: Activate graceful degradation if upstream cannot recover (PB-013)"
+          ],
+          "estimated_resolution_time": "1-2 hours",
+          "assigned_team": "API Gateway Team",
+          "escalation_contacts": [
+            "On-call SRE",
+            "API Gateway Team Lead",
+            "Upstream Service Owner (TBD)"
+          ],
+          "metadata": {
+            "diagnosis_id": "diag-2026-01-30-003-z7p9",
+            "response_plan_id": "rplan-2026-01-30-003-p5t1",
+            "diagnostic_confidence": 0.75,
+            "response_confidence": 0.70
+          }
+        },
+        "decision_audit_trail": {
+          "strategy_selection": {
+            "decision": "planned response strategy",
+            "reasoning": "MEDIUM severity with partial impact (11.7%), significant uncertainties require investigation, time window allows structured response",
+            "alternatives_considered": [
+              "Urgent response (rejected: impact not severe enough, uncertainties require investigation first)",
+              "Monitoring only (rejected: SLA breach imminent, requires active response)"
+            ]
+          },
+          "playbook_selection": {
+            "primary_playbook": "PB-009 (Dependency Health Investigation)",
+            "reasoning": "Investigation required to identify upstream service and determine appropriate recovery action. Cannot select recovery playbook until root cause confirmed.",
+            "alternatives_considered": [
+              "PB-011 (Circuit Breaker Reset) as primary (rejected: too risky without confirming upstream health first)",
+              "PB-013 (Graceful Degradation) as primary (rejected: premature without investigating recovery options first)"
+            ]
+          },
+          "human_in_loop_decision": {
+            "classification": "semi-automated",
+            "reasoning": "Investigation can proceed with automation, but recovery actions (circuit breaker reset, graceful degradation) require approval due to potential user impact.",
+            "alternatives_considered": [
+              "Human-led (rejected: investigation can be partially automated for faster response)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario_name": "medium_severity_query_performance_response",
+      "description": "Planned response for inventory service database query performance degradation",
+      "output": {
+        "response_plan_id": "rplan-2026-01-30-002-q8w3",
+        "diagnosis_id": "diag-2026-01-30-002-y4m2",
+        "escalation_id": "esc-2026-01-30-002-b4e8",
+        "timestamp": "2026-01-30T10:15:26Z",
+        "response_strategy": {
+          "strategy_type": "planned",
+          "strategy_rationale": "MEDIUM severity with localized impact. 9.4% error rate indicates majority of requests still succeeding. Query performance degradation likely requires database optimization (index creation) which should be planned and tested rather than rushed. Low cascade risk allows time for proper remediation.",
+          "execution_urgency": "medium",
+          "maximum_response_time": "4 hours",
+          "decision_factors": [
+            "Severity MEDIUM with localized impact (90.6% success rate)",
+            "Error rate moderate at 9.4%",
+            "Impact localized to inventory service, low cascade risk",
+            "Root cause likely database schema issue requiring careful remediation",
+            "Diagnostic confidence moderate (0.72) with database visibility gaps",
+            "SLA breach imminent but not yet severe",
+            "Inventory queries typically non-blocking for core transactions"
+          ]
+        },
+        "selected_playbooks": [
+          {
+            "rank": 1,
+            "playbook_id": "PB-010",
+            "playbook_name": "Database Query Optimization and Index Creation",
+            "selection_rationale": "Primary hypothesis: Database query performance degradation due to missing index or table growth. Structured investigation and optimization required.",
+            "applicability_score": 0.92,
+            "automation_feasibility": "semi-automated",
+            "estimated_duration": "1-2 hours",
+            "prerequisites_met": false,
+            "prerequisites": [
+              "Access to database slow query logs",
+              "Database schema and index analysis",
+              "Query execution plan review",
+              "Test environment for index creation validation"
+            ],
+            "risk_assessment": "Medium risk: Index creation requires careful analysis to avoid performance degradation. Must test in non-production first."
+          },
+          {
+            "rank": 2,
+            "playbook_id": "PB-008",
+            "playbook_name": "Cache Configuration Optimization",
+            "selection_rationale": "Secondary hypothesis: Cache service degradation or invalidation issue. Cache hit rate at 42% may be below normal, amplifying database load.",
+            "applicability_score": 0.68,
+            "automation_feasibility": "semi-automated",
+            "estimated_duration": "30-45 minutes",
+            "prerequisites_met": false,
+            "prerequisites": [
+              "Cache service health verification",
+              "Cache hit rate baseline for comparison",
+              "Cache configuration review"
+            ],
+            "risk_assessment": "Low risk: Cache optimization has minimal risk compared to database changes."
+          },
+          {
+            "rank": 3,
+            "playbook_id": "PB-007",
+            "playbook_name": "Request Queue Drain and Rate Limiting",
+            "selection_rationale": "IMMEDIATE RELIEF: While investigating database issue, rate limiting can reduce database load and prevent further degradation.",
+            "applicability_score": 0.75,
+            "automation_feasibility": "automated",
+            "estimated_duration": "5-10 minutes",
+            "prerequisites_met": true,
+            "risk_assessment": "Low risk: Temporary measure to stabilize service during investigation. Can be removed after database optimization."
+          }
+        ],
+        "human_in_loop": {
+          "classification": "human-led",
+          "approval_required": true,
+          "approval_scope": [
+            "Database index creation (requires DBA review and approval)",
+            "Query execution plan modifications",
+            "Cache configuration changes",
+            "Rate limiting thresholds"
+          ],
+          "approval_timeout": "2 hours",
+          "fallback_if_no_approval": "Apply temporary rate limiting (PB-007) only. Escalate database optimization to scheduled maintenance window.",
+          "recommended_approvers": [
+            "Database Administrator",
+            "Inventory Service Tech Lead",
+            "On-call SRE (for rate limiting approval)"
+          ],
+          "rationale": "Database schema changes (index creation) require DBA expertise and testing. MEDIUM severity allows time for proper analysis and approval process rather than emergency action."
+        },
+        "escalation_decisions": {
+          "escalation_required": true,
+          "escalation_targets": [
+            {
+              "target": "database_administrator",
+              "priority": "P2",
+              "notification_method": "slack",
+              "rationale": "Database query optimization requires DBA analysis of slow queries, execution plans, and index recommendations."
+            },
+            {
+              "target": "inventory_service_team",
+              "priority": "P2",
+              "notification_method": "slack",
+              "rationale": "Service owner should be aware of performance degradation and participate in remediation planning."
+            },
+            {
+              "target": "on_call_sre",
+              "priority": "P3",
+              "notification_method": "slack",
+              "rationale": "SRE awareness for monitoring and temporary rate limiting if needed."
+            }
+          ],
+          "escalation_context": {
+            "severity": "MEDIUM",
+            "user_impact": "9.4% inventory query failures, noticeable latency",
+            "business_impact": "Degraded shopping experience, not directly revenue-blocking",
+            "duration": "Performance degradation ongoing, requires structured remediation",
+            "blast_radius": "Localized to inventory service, low cascade risk",
+            "recommended_actions": "Database query optimization (slow query analysis, index creation), cache optimization review, temporary rate limiting"
+          }
+        },
+        "execution_payload": {
+          "playbook_sequence": [
+            {
+              "step": 1,
+              "playbook_id": "PB-007",
+              "action": "Apply temporary rate limiting to reduce database load during investigation",
+              "automation_level": "automated",
+              "requires_approval": true,
+              "estimated_duration": "5-10 minutes",
+              "note": "Immediate relief measure; can execute while investigation proceeds"
+            },
+            {
+              "step": 2,
+              "playbook_id": "PB-010",
+              "action": "Database investigation: Analyze slow query logs and identify problematic queries",
+              "automation_level": "semi-automated",
+              "requires_approval": false,
+              "estimated_duration": "30-45 minutes",
+              "dependency": "Can execute in parallel with step 1"
+            },
+            {
+              "step": 3,
+              "playbook_id": "PB-010",
+              "action": "Generate query execution plans and index recommendations",
+              "automation_level": "semi-automated",
+              "requires_approval": false,
+              "estimated_duration": "20-30 minutes",
+              "dependency": "Requires step 2 completion"
+            },
+            {
+              "step": 4,
+              "playbook_id": "PB-008",
+              "action": "PARALLEL: Investigate cache service health and hit rate patterns",
+              "automation_level": "semi-automated",
+              "requires_approval": false,
+              "estimated_duration": "30-45 minutes",
+              "dependency": "Can execute in parallel with steps 2-3"
+            },
+            {
+              "step": 5,
+              "playbook_id": "PB-010",
+              "action": "Test index creation in staging environment",
+              "automation_level": "semi-automated",
+              "requires_approval": true,
+              "estimated_duration": "30-45 minutes",
+              "dependency": "Requires step 3 completion and DBA approval"
+            },
+            {
+              "step": 6,
+              "playbook_id": "PB-010",
+              "action": "Apply database index creation to production (during low-traffic window if possible)",
+              "automation_level": "human-led",
+              "requires_approval": true,
+              "estimated_duration": "15-30 minutes",
+              "dependency": "Requires step 5 successful completion and DBA approval",
+              "note": "Schedule for low-traffic window if degradation not escalating"
+            },
+            {
+              "step": 7,
+              "playbook_id": "PB-007",
+              "action": "Remove temporary rate limiting after database optimization complete",
+              "automation_level": "automated",
+              "requires_approval": false,
+              "estimated_duration": "5 minutes",
+              "dependency": "Requires step 6 completion and verification of improved performance"
+            }
+          ],
+          "monitoring_requirements": [
+            "Query execution time (target: <500ms for P95)",
+            "Error rate (target: <2%)",
+            "Database connection pool utilization (should decrease after optimization)",
+            "Cache hit rate (should improve if cache optimization applied)",
+            "Inventory service response time (target: P95 <800ms)"
+          ],
+          "success_criteria": {
+            "recovery_targets": [
+              "P95 response time below 800ms",
+              "Error rate below 2%",
+              "Query execution time below 500ms",
+              "Database connection pool utilization below 60%"
+            ],
+            "recovery_timeout": "4 hours"
+          }
+        },
+        "safety_controls": {
+          "pre_execution_checks": [
+            "Verify database has capacity for index creation (disk space, IO capacity)",
+            "Confirm no concurrent database maintenance or migrations",
+            "Validate rate limiting thresholds won't over-restrict legitimate traffic",
+            "Schedule index creation for low-traffic window if possible"
+          ],
+          "execution_safeguards": [
+            "Test all index changes in staging environment first",
+            "DBA review required for all database schema changes",
+            "Monitor database server resources during index creation",
+            "Rollback plan: Drop index if performance degrades",
+            "Rate limiting gradual adjustment based on database load response"
+          ],
+          "risk_mitigation": [
+            {
+              "risk": "Index creation causes database lock or performance degradation",
+              "mitigation": "Test in staging first; create index during low-traffic window; use online/concurrent index creation if supported",
+              "likelihood": "low"
+            },
+            {
+              "risk": "Wrong index created, performance does not improve",
+              "mitigation": "DBA analysis of query execution plans; test in staging with production-like data volume",
+              "likelihood": "medium"
+            },
+            {
+              "risk": "Rate limiting too aggressive, impacts user experience",
+              "mitigation": "Set conservative thresholds; monitor user impact; adjust based on feedback",
+              "likelihood": "low"
+            }
+          ],
+          "blast_radius_containment": "Actions scoped to inventory service database and API only. No changes to dependent services."
+        },
+        "uncertainty_handling": {
+          "known_uncertainties": [
+            "No baseline cache hit rate to confirm if 42% is abnormal",
+            "Database schema and indexing strategy unknown",
+            "Query patterns and data volume growth unknown",
+            "Database server resource utilization not visible"
+          ],
+          "mitigation_actions": [
+            "Step 2-3: Slow query log analysis will reveal problematic queries and missing indexes",
+            "Step 4: Cache investigation will determine if cache is contributing factor",
+            "DBA involvement: Database expert will assess schema and recommend proper indexing strategy",
+            "Post-incident: Establish database performance baselines and proactive monitoring"
+          ],
+          "confidence_in_plan": 0.80,
+          "confidence_rationale": "Good confidence in structured investigation and database optimization approach. Some uncertainty due to limited database visibility, mitigated by DBA involvement and staged testing."
+        },
+        "ticketing_payload": {
+          "ticket_type": "incident",
+          "severity": "P2",
+          "priority": "medium",
+          "title": "MEDIUM: Inventory Service Query Performance Degradation - Database Optimization Required",
+          "description": "Inventory service experiencing moderate query performance degradation with 9.4% failure rate. Root cause: Database query inefficiency likely due to missing index or table growth. Structured investigation and optimization required.",
+          "affected_services": [
+            "inventory_service_eu"
+          ],
+          "root_cause_summary": "Database query performance degradation, likely missing index or table growth",
+          "impact_summary": "9.4% query failures, noticeable latency (1850ms), degraded shopping experience, SLA breach imminent",
+          "recommended_actions": [
+            "Temporary rate limiting for immediate relief (PB-007)",
+            "Database slow query analysis and index recommendations (PB-010)",
+            "Cache service investigation (PB-008)",
+            "Test and apply index creation in staging then production"
+          ],
+          "estimated_resolution_time": "2-4 hours",
+          "assigned_team": "Database Administration Team",
+          "escalation_contacts": [
+            "Database Administrator",
+            "Inventory Service Tech Lead",
+            "On-call SRE"
+          ],
+          "metadata": {
+            "diagnosis_id": "diag-2026-01-30-002-y4m2",
+            "response_plan_id": "rplan-2026-01-30-002-q8w3",
+            "diagnostic_confidence": 0.72,
+            "response_confidence": 0.80
+          }
+        },
+        "decision_audit_trail": {
+          "strategy_selection": {
+            "decision": "planned response strategy",
+            "reasoning": "MEDIUM severity with localized impact, database optimization requires careful analysis and testing, low cascade risk allows time for proper remediation",
+            "alternatives_considered": [
+              "Urgent response (rejected: 9.4% error rate not severe enough, database changes require testing)",
+              "Monitoring only (rejected: SLA breach imminent, performance degrading)"
+            ]
+          },
+          "playbook_selection": {
+            "primary_playbook": "PB-010 (Database Query Optimization)",
+            "reasoning": "Primary hypothesis (72% confidence) is database query inefficiency. Structured optimization with DBA involvement most appropriate.",
+            "alternatives_considered": [
+              "PB-008 (Cache Optimization) as primary (rejected: lower confidence hypothesis, should be parallel investigation)",
+              "PB-002 (Application Restart) (rejected: doesn't address database root cause)"
+            ]
+          },
+          "human_in_loop_decision": {
+            "classification": "human-led",
+            "reasoning": "Database schema changes require DBA expertise and testing. MEDIUM severity allows time for proper approval and staged deployment.",
+            "alternatives_considered": [
+              "Semi-automated (rejected: database index creation too risky for automated execution)"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

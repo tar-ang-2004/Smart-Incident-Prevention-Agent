@@ -1,0 +1,708 @@
+# Smart Incident Prevention Orchestrator - Routing Rules
+# Version: 1.0
+# Date: January 30, 2026
+# Platform: IBM watsonx Orchestrate
+
+---
+# ORCHESTRATION CONFIGURATION
+---
+
+orchestrator:
+  name: "smart_incident_prevention_orchestrator"
+  version: "1.0"
+  description: "Agentic orchestration for incident detection, diagnosis, and response planning"
+  mode: "agentic"  # agentic vs pipeline
+  
+  agents:
+    monitoring:
+      agent_id: "monitoring_agent"
+      endpoint: "${MONITORING_AGENT_ENDPOINT}"
+      timeout_seconds: 30
+      retry_policy:
+        max_retries: 2
+        backoff_strategy: "exponential"
+        initial_delay_ms: 1000
+        max_delay_ms: 5000
+    
+    analysis:
+      agent_id: "analysis_agent"
+      endpoint: "${ANALYSIS_AGENT_ENDPOINT}"
+      timeout_seconds: 60
+      retry_policy:
+        max_retries: 2
+        backoff_strategy: "exponential"
+        initial_delay_ms: 1000
+        max_delay_ms: 5000
+    
+    response:
+      agent_id: "response_agent"
+      endpoint: "${RESPONSE_AGENT_ENDPOINT}"
+      timeout_seconds: 45
+      retry_policy:
+        max_retries: 2
+        backoff_strategy: "exponential"
+        initial_delay_ms: 1000
+        max_delay_ms: 5000
+
+  orchestration_timeout_seconds: 300  # Maximum time for complete orchestration run
+
+---
+# ROUTING RULES
+---
+
+routing_rules:
+  
+  # ============================================================
+  # PHASE 1: MONITORING EVALUATION
+  # ============================================================
+  
+  monitoring_evaluation:
+    description: "Route based on monitoring agent's risk classification"
+    
+    rules:
+      - condition:
+          field: "risk_level"
+          operator: "in"
+          values: ["NONE", "LOW"]
+        action:
+          type: "terminate"
+          terminal_state: "TERMINATED_NO_INCIDENT"
+          reason: "Risk level below escalation threshold"
+          log_message: "Monitoring detected no actionable incident. Risk level: {risk_level}"
+        
+      - condition:
+          field: "risk_level"
+          operator: "equals"
+          value: "MEDIUM"
+        and:
+          field: "confidence"
+          operator: "greater_than_or_equal"
+          value: 0.60
+        action:
+          type: "escalate"
+          next_phase: "diagnostic"
+          priority: "P2"
+          reason: "Medium risk detected with sufficient confidence"
+          log_message: "Escalating MEDIUM risk to diagnostic phase. Confidence: {confidence}"
+      
+      - condition:
+          field: "risk_level"
+          operator: "equals"
+          value: "MEDIUM"
+        and:
+          field: "confidence"
+          operator: "less_than"
+          value: 0.60
+        action:
+          type: "escalate"
+          next_phase: "diagnostic"
+          priority: "P2"
+          flags:
+            - "LOW_CONFIDENCE_WARNING"
+            - "HUMAN_REVIEW_RECOMMENDED"
+          reason: "Medium risk with low confidence requires diagnostic investigation"
+          log_message: "Escalating MEDIUM risk despite low confidence ({confidence}). Flagging for human review."
+      
+      - condition:
+          field: "risk_level"
+          operator: "equals"
+          value: "HIGH"
+        action:
+          type: "escalate"
+          next_phase: "diagnostic"
+          priority: "P1"
+          reason: "High risk requires immediate diagnostic investigation"
+          log_message: "Escalating HIGH risk to diagnostic phase. Confidence: {confidence}"
+          flags:
+            - "HIGH_SEVERITY"
+      
+    default_action:
+      type: "error"
+      terminal_state: "HALTED_ERROR"
+      reason: "Unexpected risk_level value from monitoring agent"
+      log_message: "Invalid risk_level: {risk_level}. Expected: NONE, LOW, MEDIUM, or HIGH"
+
+  # ============================================================
+  # PHASE 2: DIAGNOSTIC EVALUATION
+  # ============================================================
+  
+  diagnostic_evaluation:
+    description: "Route based on analysis agent's diagnostic results"
+    
+    # Step 1: Confidence validation
+    confidence_check:
+      rules:
+        - condition:
+            field: "diagnostic_confidence"
+            operator: "less_than"
+            value: 0.50
+          action:
+            type: "flag"
+            flags:
+              - "LOW_DIAGNOSTIC_CONFIDENCE"
+              - "FORCE_HUMAN_IN_LOOP"
+            reason: "Diagnostic confidence below safety threshold"
+            log_message: "Low diagnostic confidence ({diagnostic_confidence}). Forcing human-in-the-loop for all downstream decisions."
+            continue: true  # Continue to severity evaluation but with human-in-loop enforced
+        
+        - condition:
+            field: "diagnostic_confidence"
+            operator: "greater_than_or_equal"
+            value: 0.50
+          action:
+            type: "continue"
+            log_message: "Diagnostic confidence acceptable ({diagnostic_confidence}). Proceeding to severity evaluation."
+    
+    # Step 2: Severity-based routing
+    severity_routing:
+      rules:
+        - condition:
+            field: "refined_severity"
+            operator: "in"
+            values: ["NONE", "LOW"]
+          action:
+            type: "terminate"
+            terminal_state: "TERMINATED_DOWNGRADED"
+            reason: "Analysis downgraded severity below actionable threshold"
+            log_message: "Diagnostic analysis downgraded severity to {refined_severity}. Terminating orchestration (false positive or non-actionable)."
+        
+        - condition:
+            field: "refined_severity"
+            operator: "equals"
+            value: "MEDIUM"
+          and:
+            field: "diagnostic_confidence"
+            operator: "greater_than_or_equal"
+            value: 0.50
+          action:
+            type: "escalate"
+            next_phase: "response_planning"
+            priority: "P2"
+            reason: "Medium severity incident with sufficient diagnostic confidence"
+            log_message: "Escalating MEDIUM severity incident to response planning. Confidence: {diagnostic_confidence}"
+        
+        - condition:
+            field: "refined_severity"
+            operator: "equals"
+            value: "MEDIUM"
+          and:
+            field: "diagnostic_confidence"
+            operator: "less_than"
+            value: 0.50
+          action:
+            type: "escalate"
+            next_phase: "response_planning"
+            priority: "P2"
+            flags:
+              - "LOW_DIAGNOSTIC_CONFIDENCE"
+              - "FORCE_HUMAN_IN_LOOP"
+            reason: "Medium severity with low diagnostic confidence requires human oversight"
+            log_message: "Escalating MEDIUM severity despite low confidence. Human-in-loop enforced."
+        
+        - condition:
+            field: "refined_severity"
+            operator: "equals"
+            value: "HIGH"
+          action:
+            type: "escalate"
+            next_phase: "response_planning"
+            priority: "P1"
+            reason: "High severity incident requires urgent response planning"
+            log_message: "Escalating HIGH severity incident. Confidence: {diagnostic_confidence}"
+            flags:
+              - "HIGH_SEVERITY"
+              - "URGENT_RESPONSE_REQUIRED"
+        
+        - condition:
+            field: "refined_severity"
+            operator: "equals"
+            value: "CRITICAL"
+          action:
+            type: "escalate"
+            next_phase: "response_planning"
+            priority: "P0"
+            reason: "Critical severity incident requires emergency response"
+            log_message: "Escalating CRITICAL severity incident. Emergency response required. Confidence: {diagnostic_confidence}"
+            flags:
+              - "CRITICAL_SEVERITY"
+              - "EMERGENCY_RESPONSE"
+              - "IMMEDIATE_ESCALATION"
+    
+    default_action:
+      type: "error"
+      terminal_state: "HALTED_ERROR"
+      reason: "Invalid or missing refined_severity from analysis agent"
+      log_message: "Diagnostic evaluation failed. Invalid refined_severity: {refined_severity}"
+
+  # ============================================================
+  # PHASE 3: RESPONSE PLANNING EVALUATION
+  # ============================================================
+  
+  response_evaluation:
+    description: "Route based on response agent's response plan"
+    
+    # Step 1: Validate response plan completeness
+    completeness_check:
+      required_fields:
+        - "response_plan_id"
+        - "response_strategy.strategy_type"
+        - "human_in_loop.classification"
+        - "escalation_decisions"
+        - "execution_payload"
+        - "safety_controls"
+      
+      on_missing_field:
+        type: "error"
+        terminal_state: "HALTED_ERROR"
+        reason: "Response plan missing critical fields"
+        log_message: "Response plan validation failed. Missing fields: {missing_fields}"
+    
+    # Step 2: Human-in-the-loop enforcement
+    human_in_loop_routing:
+      rules:
+        - condition:
+            field: "human_in_loop.classification"
+            operator: "equals"
+            value: "automated"
+          and:
+            flags_not_present:
+              - "FORCE_HUMAN_IN_LOOP"
+          action:
+            type: "allow_automation"
+            automation_level: "full"
+            reason: "Response plan classified as automated and no safety flags prevent automation"
+            log_message: "Automated execution allowed (subject to pre-execution safety checks)"
+        
+        - condition:
+            field: "human_in_loop.classification"
+            operator: "equals"
+            value: "automated"
+          and:
+            flags_present:
+              - "FORCE_HUMAN_IN_LOOP"
+          action:
+            type: "override_automation"
+            automation_level: "human-led"
+            reason: "Automation blocked by FORCE_HUMAN_IN_LOOP flag (low diagnostic confidence)"
+            log_message: "Overriding automated classification due to low confidence. Requiring human control."
+        
+        - condition:
+            field: "human_in_loop.classification"
+            operator: "equals"
+            value: "semi-automated"
+          action:
+            type: "partial_automation"
+            automation_level: "semi-automated"
+            approval_required: true
+            reason: "Response plan requires human approval for specific actions"
+            log_message: "Semi-automated execution. Human approval required for: {human_in_loop.approval_scope}"
+        
+        - condition:
+            field: "human_in_loop.classification"
+            operator: "equals"
+            value: "human-led"
+          action:
+            type: "block_automation"
+            automation_level: "human-led"
+            reason: "Response plan requires full human control"
+            log_message: "Automation blocked. Human-led response required."
+    
+    # Step 3: Strategy-based priority routing
+    strategy_routing:
+      rules:
+        - condition:
+            field: "response_strategy.strategy_type"
+            operator: "equals"
+            value: "immediate"
+          action:
+            type: "set_priority"
+            priority: "P0"
+            escalation_urgency: "emergency"
+            max_response_time_minutes: 5
+            reason: "Immediate response strategy requires emergency escalation"
+            log_message: "IMMEDIATE response strategy. Priority: P0. Max response time: 5 minutes."
+        
+        - condition:
+            field: "response_strategy.strategy_type"
+            operator: "equals"
+            value: "urgent"
+          action:
+            type: "set_priority"
+            priority: "P1"
+            escalation_urgency: "urgent"
+            max_response_time_minutes: 30
+            reason: "Urgent response strategy requires immediate attention"
+            log_message: "URGENT response strategy. Priority: P1. Max response time: 30 minutes."
+        
+        - condition:
+            field: "response_strategy.strategy_type"
+            operator: "equals"
+            value: "planned"
+          action:
+            type: "set_priority"
+            priority: "P2"
+            escalation_urgency: "normal"
+            max_response_time_hours: 4
+            reason: "Planned response allows structured remediation"
+            log_message: "PLANNED response strategy. Priority: P2. Max response time: 4 hours."
+        
+        - condition:
+            field: "response_strategy.strategy_type"
+            operator: "equals"
+            value: "monitoring"
+          action:
+            type: "set_priority"
+            priority: "P3"
+            escalation_urgency: "low"
+            reason: "Monitoring-only strategy requires watch list tracking"
+            log_message: "MONITORING response strategy. Priority: P3. Added to watch list."
+    
+    # Step 4: Handoff destination routing
+    handoff_routing:
+      rules:
+        - condition:
+            field: "response_strategy.strategy_type"
+            operator: "in"
+            values: ["immediate", "urgent"]
+          and:
+            field: "human_in_loop.classification"
+            operator: "in"
+            values: ["automated", "semi-automated"]
+          action:
+            type: "handoff"
+            destination: "action_execution_agent"
+            requires_safety_validation: true
+            reason: "Urgent response with automation allowed requires execution agent handoff"
+            log_message: "Handing off to action execution agent. Human-in-loop level: {human_in_loop.classification}"
+        
+        - condition:
+            field: "human_in_loop.classification"
+            operator: "equals"
+            value: "human-led"
+          action:
+            type: "handoff"
+            destination: "ticketing_system"
+            reason: "Human-led response requires ticketing and manual coordination"
+            log_message: "Handing off to ticketing system for human-led response"
+        
+        - condition:
+            field: "response_strategy.strategy_type"
+            operator: "equals"
+            value: "planned"
+          action:
+            type: "handoff"
+            destination: "workflow_system"
+            reason: "Planned response uses structured workflow"
+            log_message: "Handing off to workflow system for planned response execution"
+        
+        - condition:
+            field: "response_strategy.strategy_type"
+            operator: "equals"
+            value: "monitoring"
+          action:
+            type: "handoff"
+            destination: "watch_list"
+            reason: "Monitoring-only strategy adds to watch list"
+            log_message: "Adding to watch list for monitoring"
+
+  # ============================================================
+  # PHASE 4: PRE-HANDOFF SAFETY VALIDATION
+  # ============================================================
+  
+  safety_validation:
+    description: "Final safety checks before downstream handoff"
+    
+    required_safety_controls:
+      - "pre_execution_checks"
+      - "execution_safeguards"
+      - "risk_mitigation"
+      - "blast_radius_containment"
+    
+    required_metadata:
+      - "orchestration_run_id"
+      - "agent_invocation_trace"
+      - "decision_audit_trail"
+      - "confidence_scores"
+      - "severity_progression"
+    
+    validation_rules:
+      - check: "safety_controls_present"
+        on_failure:
+          type: "error"
+          terminal_state: "HALTED_SAFETY_VIOLATION"
+          reason: "Required safety controls missing from execution payload"
+          log_message: "Safety validation failed. Missing safety controls: {missing_controls}"
+      
+      - check: "human_in_loop_preserved"
+        on_failure:
+          type: "error"
+          terminal_state: "HALTED_SAFETY_VIOLATION"
+          reason: "Human-in-the-loop requirements not preserved in handoff payload"
+          log_message: "Safety validation failed. Human-in-loop requirements missing."
+      
+      - check: "escalation_targets_identified"
+        condition:
+          field: "response_strategy.strategy_type"
+          operator: "in"
+          values: ["immediate", "urgent"]
+        on_failure:
+          type: "error"
+          terminal_state: "HALTED_SAFETY_VIOLATION"
+          reason: "Urgent/immediate response missing escalation targets"
+          log_message: "Safety validation failed. Escalation targets not identified for urgent response."
+      
+      - check: "audit_trail_complete"
+        on_failure:
+          type: "error"
+          terminal_state: "HALTED_SAFETY_VIOLATION"
+          reason: "Orchestration audit trail incomplete"
+          log_message: "Safety validation failed. Audit trail missing required fields: {missing_fields}"
+
+---
+# CONFIDENCE THRESHOLDS
+---
+
+confidence_thresholds:
+  description: "Confidence score thresholds for routing and safety decisions"
+  
+  monitoring_agent:
+    minimum_for_high_risk: 0.60
+    force_human_review_below: 0.50
+    description: "Monitoring confidence thresholds"
+  
+  analysis_agent:
+    minimum_for_automated_response: 0.50
+    force_human_in_loop_below: 0.50
+    block_automation_below: 0.30
+    description: "Diagnostic confidence thresholds for response planning"
+  
+  response_agent:
+    # Response agent does not output confidence, but inherits diagnostic confidence
+    inherit_diagnostic_confidence: true
+
+---
+# ESCALATION MAPPINGS
+---
+
+escalation_mappings:
+  description: "Map severity and urgency to escalation targets and priorities"
+  
+  by_severity:
+    CRITICAL:
+      priority: "P0"
+      escalation_targets:
+        - "on_call_sre"
+        - "incident_commander"
+        - "database_administrator"
+        - "engineering_leadership"
+      notification_method: "page"
+      max_response_time_minutes: 5
+    
+    HIGH:
+      priority: "P1"
+      escalation_targets:
+        - "on_call_sre"
+        - "service_owner"
+        - "database_administrator"
+      notification_method: "page"
+      max_response_time_minutes: 30
+    
+    MEDIUM:
+      priority: "P2"
+      escalation_targets:
+        - "on_call_sre"
+        - "service_owner"
+      notification_method: "slack"
+      max_response_time_hours: 4
+    
+    LOW:
+      priority: "P3"
+      escalation_targets:
+        - "service_owner"
+      notification_method: "email"
+      max_response_time_hours: 24
+  
+  by_strategy:
+    immediate:
+      urgency: "emergency"
+      escalation_method: "page"
+      escalation_timeout_minutes: 3
+    
+    urgent:
+      urgency: "high"
+      escalation_method: "page"
+      escalation_timeout_minutes: 10
+    
+    planned:
+      urgency: "normal"
+      escalation_method: "slack"
+      escalation_timeout_minutes: 60
+    
+    monitoring:
+      urgency: "low"
+      escalation_method: "email"
+      escalation_timeout_hours: 24
+
+---
+# ERROR HANDLING
+---
+
+error_handling:
+  description: "Error handling and recovery policies"
+  
+  agent_invocation_failure:
+    retry_policy:
+      max_retries: 2
+      backoff_strategy: "exponential"
+      initial_delay_ms: 1000
+      max_delay_ms: 5000
+    
+    on_retry_exhausted:
+      action: "halt"
+      terminal_state: "HALTED_ERROR"
+      escalation:
+        targets: ["on_call_sre"]
+        priority: "P1"
+        notification_method: "page"
+        message: "Orchestration halted: Agent {agent_id} failed after {retry_count} retries"
+  
+  schema_validation_failure:
+    action: "halt"
+    terminal_state: "HALTED_ERROR"
+    escalation:
+      targets: ["agent_development_team", "on_call_sre"]
+      priority: "P1"
+      notification_method: "slack"
+      message: "Schema validation failed for {agent_id} output. Missing fields: {missing_fields}"
+  
+  timeout:
+    action: "halt"
+    terminal_state: "HALTED_ERROR"
+    escalation:
+      targets: ["on_call_sre", "platform_team"]
+      priority: "P1"
+      notification_method: "page"
+      message: "Orchestration timeout: {agent_id} did not respond within {timeout_seconds} seconds"
+  
+  safety_violation:
+    action: "halt"
+    terminal_state: "HALTED_SAFETY_VIOLATION"
+    escalation:
+      targets: ["on_call_sre", "security_team"]
+      priority: "P0"
+      notification_method: "page"
+      message: "Safety violation detected: {violation_type}. Orchestration halted."
+
+---
+# OBSERVABILITY
+---
+
+observability:
+  description: "Monitoring and tracing configuration"
+  
+  metrics:
+    enabled: true
+    export_interval_seconds: 60
+    metrics_to_track:
+      - "orchestration_runs_total"
+      - "orchestration_runs_by_terminal_state"
+      - "agent_invocations_total"
+      - "agent_invocation_failures_total"
+      - "agent_invocation_duration_seconds"
+      - "orchestration_duration_seconds"
+      - "routing_decision_count"
+      - "safety_checkpoint_activations"
+      - "confidence_threshold_violations"
+  
+  tracing:
+    enabled: true
+    trace_all_orchestrations: true
+    trace_fields:
+      - "orchestration_run_id"
+      - "agent_invocation_sequence"
+      - "routing_decisions"
+      - "confidence_scores"
+      - "severity_progression"
+      - "terminal_state"
+      - "error_events"
+  
+  logging:
+    level: "INFO"  # DEBUG, INFO, WARN, ERROR
+    format: "json"
+    include_fields:
+      - "timestamp"
+      - "orchestration_run_id"
+      - "phase"
+      - "agent_id"
+      - "routing_decision"
+      - "severity"
+      - "confidence"
+      - "flags"
+      - "message"
+  
+  alerting:
+    enabled: true
+    alert_on:
+      - condition: "orchestration_error_rate > 0.05"
+        severity: "high"
+        notification: "page"
+      - condition: "agent_timeout_rate > 0.02"
+        severity: "high"
+        notification: "slack"
+      - condition: "safety_violation_count > 0"
+        severity: "critical"
+        notification: "page"
+      - condition: "schema_validation_failure_rate > 0.01"
+        severity: "medium"
+        notification: "slack"
+
+---
+# SAFETY INVARIANTS
+---
+
+safety_invariants:
+  description: "Invariants that must never be violated"
+  
+  rules:
+    - invariant: "never_skip_diagnostic_for_medium_plus"
+      description: "Never skip diagnostic phase for MEDIUM or higher severity"
+      enforcement: "orchestrator_logic"
+      violation_action: "halt_with_error"
+    
+    - invariant: "never_allow_automation_when_human_led"
+      description: "Never allow automated execution when human_in_loop = human-led"
+      enforcement: "routing_rules"
+      violation_action: "halt_with_safety_violation"
+    
+    - invariant: "never_proceed_with_invalid_output"
+      description: "Never proceed to next phase with invalid or incomplete agent output"
+      enforcement: "schema_validation"
+      violation_action: "halt_with_error"
+    
+    - invariant: "never_bypass_confidence_checks"
+      description: "Never bypass confidence threshold validation"
+      enforcement: "routing_rules"
+      violation_action: "flag_and_force_human_review"
+    
+    - invariant: "never_escalate_without_justification"
+      description: "Never escalate or route without clear justification in audit trail"
+      enforcement: "orchestrator_logic"
+      violation_action: "halt_with_error"
+    
+    - invariant: "always_validate_safety_controls_before_handoff"
+      description: "Always validate safety controls present before downstream handoff"
+      enforcement: "pre_handoff_validation"
+      violation_action: "halt_with_safety_violation"
+
+---
+# VERSION CONTROL
+---
+
+version_control:
+  schema_version: "1.0"
+  last_modified: "2026-01-30"
+  author: "Orchestration Architecture Team"
+  changelog:
+    - version: "1.0"
+      date: "2026-01-30"
+      changes: "Initial routing rules specification for Smart Incident Prevention Orchestrator"

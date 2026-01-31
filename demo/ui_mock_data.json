@@ -1,0 +1,861 @@
+{
+  "scenarios": [
+    {
+      "id": "scenario-001",
+      "name": "Database Connection Spike",
+      "description": "Sudden increase in database connections exceeding normal thresholds",
+      "input": {
+        "alertId": "ALT-DB-001",
+        "timestamp": "2026-01-31T14:32:10Z",
+        "severity": "high",
+        "source": "monitoring-system",
+        "alertType": "resource_threshold",
+        "metrics": {
+          "currentConnections": 95,
+          "normalThreshold": 50,
+          "maxCapacity": 100,
+          "percentageUsed": 95,
+          "trend": "increasing"
+        },
+        "affectedResource": {
+          "type": "database",
+          "name": "payment-db-prod",
+          "region": "us-east-1",
+          "environment": "production"
+        },
+        "metadata": {
+          "datacenter": "AWS-US-EAST-1A",
+          "cluster": "production-cluster-01",
+          "tags": ["critical", "payment-processing"]
+        }
+      },
+      "monitoringOutput": {
+        "agentName": "Monitoring Agent",
+        "agentType": "monitoring",
+        "status": "success",
+        "timestamp": "2026-01-31T14:32:12Z",
+        "confidence": 0.85,
+        "reasoning": "Detected anomalous spike in database connections. Current usage at 95% exceeds normal operational threshold of 50% by 90%. Pattern analysis indicates this is not a typical peak-hour load. Connection rate increased by 140% in the last 5 minutes, suggesting potential connection leak or sudden traffic surge.",
+        "data": {
+          "anomalyDetected": true,
+          "anomalyType": "resource_exhaustion",
+          "severity": "high",
+          "riskScore": 8.5,
+          "metrics": {
+            "currentValue": 95,
+            "expectedValue": 45,
+            "deviation": 111,
+            "deviationUnit": "percentage"
+          },
+          "patterns": {
+            "isRecurring": false,
+            "similarIncidents": 3,
+            "timeframeOfSimilar": "30 days",
+            "typicalResolution": "connection pool resize"
+          },
+          "urgency": "immediate",
+          "potentialImpact": "Service degradation or outage in payment processing API"
+        },
+        "escalationRequired": false,
+        "escalationReason": null
+      },
+      "analysisOutput": {
+        "agentName": "Analysis Agent",
+        "agentType": "analysis",
+        "status": "success",
+        "timestamp": "2026-01-31T14:32:14Z",
+        "confidence": 0.78,
+        "reasoning": "Root cause identified as connection pool exhaustion due to unoptimized N+1 query pattern. Historical data shows 3 similar incidents in the past 30 days, all occurring during peak transaction hours. Strong correlation detected with deployment version 3.2.1 which introduced new ORM configuration. Analysis of application logs reveals lazy-loading queries generating excessive database connections. Impacted service is payment processing API, affecting transaction completion rates.",
+        "data": {
+          "rootCause": "Connection pool exhaustion from N+1 query pattern",
+          "contributingFactors": [
+            "Unoptimized ORM configuration in v3.2.1",
+            "Lazy loading queries in payment transaction flow",
+            "Insufficient connection pool size for current load"
+          ],
+          "impactedServices": [
+            {
+              "name": "payment-api",
+              "impact": "high",
+              "affectedEndpoints": ["/api/v1/payments/process", "/api/v1/payments/verify"],
+              "currentErrorRate": "12%"
+            }
+          ],
+          "historicalContext": {
+            "similarIncidents": 3,
+            "timeframe": "30 days",
+            "commonPattern": "peak-hours",
+            "previousResolutions": ["temporary connection pool increase", "query optimization"]
+          },
+          "deploymentCorrelation": {
+            "version": "3.2.1",
+            "deployedAt": "2026-01-29T10:00:00Z",
+            "changeLog": "Updated ORM framework from v2.1 to v3.0, modified entity relationships",
+            "correlationScore": 0.89
+          },
+          "logAnalysis": {
+            "errorPatterns": [
+              "ConnectionPoolTimeoutException",
+              "Too many connections",
+              "Wait timeout exceeded"
+            ],
+            "frequencyPerMinute": 47,
+            "affectedTransactions": 1240
+          }
+        },
+        "escalationRequired": false,
+        "escalationReason": null
+      },
+      "responseOutput": {
+        "agentName": "Response Planning Agent",
+        "agentType": "response",
+        "status": "success",
+        "timestamp": "2026-01-31T14:32:15Z",
+        "confidence": 0.92,
+        "reasoning": "Generated comprehensive response plan combining immediate remediation, short-term fixes, and long-term preventive measures. Immediate actions focus on service restoration by increasing connection pool capacity. Short-term fixes address the root cause through query optimization. Long-term prevention includes improved deployment validation and monitoring. Human approval required for database configuration changes due to production impact and change management policy requiring platform team authorization for database parameter modifications.",
+        "data": {
+          "severity": "high",
+          "summary": "Database connection pool exhaustion detected in payment processing API. Root cause traced to unoptimized query pattern introduced in version 3.2.1. Immediate action required to prevent service outage.",
+          "actionPlan": {
+            "priority1": [
+              {
+                "action": "Increase database connection pool size from 20 to 50",
+                "estimatedTime": "5 minutes",
+                "risk": "low",
+                "reversible": true
+              },
+              {
+                "action": "Enable connection pool monitoring and alerting",
+                "estimatedTime": "10 minutes",
+                "risk": "none",
+                "reversible": true
+              },
+              {
+                "action": "Apply query optimization patch for N+1 pattern",
+                "estimatedTime": "15 minutes",
+                "risk": "medium",
+                "reversible": true
+              }
+            ],
+            "priority2": [
+              {
+                "action": "Review and optimize ORM configuration in version 3.2.1",
+                "estimatedTime": "2 hours",
+                "risk": "low",
+                "reversible": true
+              },
+              {
+                "action": "Implement connection pool threshold alerts",
+                "estimatedTime": "1 hour",
+                "risk": "none",
+                "reversible": true
+              },
+              {
+                "action": "Add database connection metrics to service dashboard",
+                "estimatedTime": "30 minutes",
+                "risk": "none",
+                "reversible": true
+              }
+            ],
+            "priority3": [
+              {
+                "action": "Schedule load testing for future ORM updates",
+                "estimatedTime": "4 hours",
+                "risk": "none",
+                "reversible": true
+              },
+              {
+                "action": "Document connection pool sizing guidelines",
+                "estimatedTime": "1 hour",
+                "risk": "none",
+                "reversible": true
+              },
+              {
+                "action": "Implement automated performance regression tests",
+                "estimatedTime": "8 hours",
+                "risk": "none",
+                "reversible": true
+              }
+            ]
+          },
+          "playbooks": [
+            {
+              "name": "Database Performance Degradation",
+              "source": "ops-runbooks/db-performance.yml",
+              "applicability": "high",
+              "sections": ["diagnosis", "connection-pool-management", "query-optimization"]
+            },
+            {
+              "name": "Connection Pool Management",
+              "source": "ops-runbooks/connection-pools.yml",
+              "applicability": "high",
+              "sections": ["sizing", "monitoring", "troubleshooting"]
+            }
+          ],
+          "humanInTheLoop": {
+            "required": true,
+            "action": "Database connection pool configuration change",
+            "riskLevel": "medium",
+            "reason": "Production database parameter modification requires platform team approval per change management policy. Action affects critical payment processing infrastructure.",
+            "escalationTarget": "Platform Engineering Team",
+            "contactInfo": "platform-team@company.com",
+            "sla": "15 minutes",
+            "approvalCriteria": [
+              "Verify backup and rollback plan",
+              "Confirm monitoring in place",
+              "Review blast radius assessment"
+            ]
+          },
+          "safetyControls": [
+            "Pre-deployment validation enabled",
+            "Automated rollback plan prepared",
+            "Blast radius limited to payment-api service only",
+            "Real-time monitoring alerts configured",
+            "Canary deployment strategy available",
+            "Database backup verified (within 1 hour)",
+            "Incident response team on standby"
+          ],
+          "estimatedResolutionTime": "30 minutes",
+          "successCriteria": [
+            "Database connections return to <60% capacity",
+            "Payment API error rate drops below 2%",
+            "No connection timeout errors in logs",
+            "Response time returns to <200ms average"
+          ]
+        },
+        "escalationRequired": true,
+        "escalationReason": "Production database configuration change requires platform team authorization"
+      }
+    },
+    {
+      "id": "scenario-002",
+      "name": "API Response Time Degradation",
+      "description": "Gradual increase in API response times affecting user experience",
+      "input": {
+        "alertId": "ALT-API-002",
+        "timestamp": "2026-01-31T15:45:22Z",
+        "severity": "medium",
+        "source": "apm-monitoring",
+        "alertType": "performance_degradation",
+        "metrics": {
+          "currentResponseTime": 2800,
+          "normalResponseTime": 180,
+          "threshold": 500,
+          "percentIncrease": 1455,
+          "affectedRequests": 8240
+        },
+        "affectedResource": {
+          "type": "api",
+          "name": "user-profile-api",
+          "region": "us-west-2",
+          "environment": "production"
+        },
+        "metadata": {
+          "service": "user-management",
+          "version": "2.8.4",
+          "instanceCount": 6
+        }
+      },
+      "monitoringOutput": {
+        "agentName": "Monitoring Agent",
+        "agentType": "monitoring",
+        "status": "success",
+        "timestamp": "2026-01-31T15:45:24Z",
+        "confidence": 0.91,
+        "reasoning": "Detected significant performance degradation in user profile API. Response times have increased from normal 180ms to current 2800ms (1455% increase). Anomaly pattern shows gradual degradation over past 2 hours rather than sudden spike, suggesting resource exhaustion or external dependency issue. Affected 8,240 requests across all API instances uniformly.",
+        "data": {
+          "anomalyDetected": true,
+          "anomalyType": "performance_degradation",
+          "severity": "medium",
+          "riskScore": 7.2,
+          "metrics": {
+            "currentValue": 2800,
+            "expectedValue": 180,
+            "deviation": 1455,
+            "deviationUnit": "percentage"
+          },
+          "patterns": {
+            "isRecurring": true,
+            "similarIncidents": 5,
+            "timeframeOfSimilar": "60 days",
+            "typicalResolution": "cache optimization or database index rebuild"
+          },
+          "urgency": "high",
+          "potentialImpact": "Degraded user experience, potential session timeouts"
+        },
+        "escalationRequired": false,
+        "escalationReason": null
+      },
+      "analysisOutput": {
+        "agentName": "Analysis Agent",
+        "agentType": "analysis",
+        "status": "success",
+        "timestamp": "2026-01-31T15:45:26Z",
+        "confidence": 0.82,
+        "reasoning": "Root cause identified as Redis cache cluster operating at 98% memory capacity, causing frequent cache evictions and fallback to slower database queries. Memory analysis shows user session data accumulating without proper TTL (time-to-live) settings. Cache hit ratio dropped from normal 94% to current 31%. Issue correlates with recent user growth spike (+40% daily active users in past week) without corresponding cache capacity increase.",
+        "data": {
+          "rootCause": "Redis cache memory exhaustion causing cache miss fallback to database",
+          "contributingFactors": [
+            "User session data missing TTL configuration",
+            "40% increase in daily active users without cache scaling",
+            "Inefficient cache key structure causing memory bloat"
+          ],
+          "impactedServices": [
+            {
+              "name": "user-profile-api",
+              "impact": "high",
+              "affectedEndpoints": ["/api/v2/users/profile", "/api/v2/users/preferences"],
+              "currentErrorRate": "3%"
+            }
+          ],
+          "historicalContext": {
+            "similarIncidents": 5,
+            "timeframe": "60 days",
+            "commonPattern": "gradual-degradation",
+            "previousResolutions": ["cache scale-up", "TTL configuration", "key optimization"]
+          },
+          "cacheAnalysis": {
+            "memoryUsage": 98,
+            "hitRatio": 31,
+            "normalHitRatio": 94,
+            "evictionsPerSecond": 142,
+            "keysWithoutTTL": 847000
+          }
+        },
+        "escalationRequired": false,
+        "escalationReason": null
+      },
+      "responseOutput": {
+        "agentName": "Response Planning Agent",
+        "agentType": "response",
+        "status": "success",
+        "timestamp": "2026-01-31T15:45:28Z",
+        "confidence": 0.88,
+        "reasoning": "Generated response plan focusing on immediate cache memory relief and long-term capacity planning. Immediate actions include adding Redis cache nodes and applying TTL to session data. Low-risk automated remediation approved for execution without human review as actions are reversible and follow standard operational procedures. No production infrastructure changes required, only cache cluster scaling which is covered by auto-remediation policy.",
+        "data": {
+          "severity": "medium",
+          "summary": "Redis cache memory exhaustion causing API performance degradation. Cache hit ratio dropped to 31% from normal 94%, forcing expensive database fallback queries. User growth outpaced cache capacity planning.",
+          "actionPlan": {
+            "priority1": [
+              {
+                "action": "Add 2 Redis cache nodes to cluster (scale from 4 to 6 nodes)",
+                "estimatedTime": "8 minutes",
+                "risk": "low",
+                "reversible": true
+              },
+              {
+                "action": "Apply 24-hour TTL to user session keys",
+                "estimatedTime": "2 minutes",
+                "risk": "low",
+                "reversible": true
+              },
+              {
+                "action": "Clear expired keys from cache immediately",
+                "estimatedTime": "5 minutes",
+                "risk": "low",
+                "reversible": false
+              }
+            ],
+            "priority2": [
+              {
+                "action": "Optimize cache key structure to reduce memory footprint",
+                "estimatedTime": "4 hours",
+                "risk": "low",
+                "reversible": true
+              },
+              {
+                "action": "Implement cache monitoring alerts for memory >85%",
+                "estimatedTime": "1 hour",
+                "risk": "none",
+                "reversible": true
+              }
+            ],
+            "priority3": [
+              {
+                "action": "Create cache capacity planning dashboard",
+                "estimatedTime": "3 hours",
+                "risk": "none",
+                "reversible": true
+              },
+              {
+                "action": "Document cache TTL best practices for development team",
+                "estimatedTime": "2 hours",
+                "risk": "none",
+                "reversible": true
+              }
+            ]
+          },
+          "playbooks": [
+            {
+              "name": "Cache Performance Optimization",
+              "source": "ops-runbooks/cache-management.yml",
+              "applicability": "high",
+              "sections": ["memory-management", "scaling", "ttl-configuration"]
+            }
+          ],
+          "humanInTheLoop": {
+            "required": false,
+            "action": null,
+            "riskLevel": "low",
+            "reason": "Cache scaling operation covered by auto-remediation policy. All actions are reversible and follow standard procedures.",
+            "escalationTarget": null,
+            "contactInfo": null,
+            "sla": null,
+            "approvalCriteria": null
+          },
+          "safetyControls": [
+            "Cache scaling automated and tested",
+            "TTL changes reversible",
+            "No data loss risk",
+            "Monitoring alerts active",
+            "Gradual traffic shift to new nodes"
+          ],
+          "estimatedResolutionTime": "15 minutes",
+          "successCriteria": [
+            "Cache hit ratio returns above 85%",
+            "API response time drops below 300ms",
+            "Memory usage stabilizes below 70%",
+            "No cache evictions occurring"
+          ]
+        },
+        "escalationRequired": false,
+        "escalationReason": null
+      }
+    },
+    {
+      "id": "scenario-003",
+      "name": "Disk Space Critical Alert",
+      "description": "Application server disk usage approaching critical threshold",
+      "input": {
+        "alertId": "ALT-DISK-003",
+        "timestamp": "2026-01-31T09:15:33Z",
+        "severity": "high",
+        "source": "infrastructure-monitoring",
+        "alertType": "resource_threshold",
+        "metrics": {
+          "currentDiskUsage": 94,
+          "threshold": 85,
+          "availableSpace": 3.2,
+          "totalSpace": 50,
+          "growthRate": "2.1GB/hour"
+        },
+        "affectedResource": {
+          "type": "server",
+          "name": "app-server-prod-07",
+          "region": "eu-west-1",
+          "environment": "production"
+        },
+        "metadata": {
+          "serverRole": "application-server",
+          "os": "Ubuntu 22.04",
+          "mountPoint": "/var/log"
+        }
+      },
+      "monitoringOutput": {
+        "agentName": "Monitoring Agent",
+        "agentType": "monitoring",
+        "status": "success",
+        "timestamp": "2026-01-31T09:15:35Z",
+        "confidence": 0.94,
+        "reasoning": "Critical disk space alert on production application server. Disk usage at 94% with only 3.2GB available. Growth rate analysis indicates disk will reach 100% capacity in approximately 1.5 hours if trend continues. Alert threshold of 85% exceeded by 9 percentage points. Mount point /var/log suggests log file accumulation as likely cause.",
+        "data": {
+          "anomalyDetected": true,
+          "anomalyType": "resource_exhaustion",
+          "severity": "high",
+          "riskScore": 9.1,
+          "metrics": {
+            "currentValue": 94,
+            "expectedValue": 65,
+            "deviation": 45,
+            "deviationUnit": "percentage"
+          },
+          "patterns": {
+            "isRecurring": true,
+            "similarIncidents": 7,
+            "timeframeOfSimilar": "90 days",
+            "typicalResolution": "log rotation or cleanup"
+          },
+          "urgency": "critical",
+          "potentialImpact": "Application crash if disk fills, loss of logging capability"
+        },
+        "escalationRequired": false,
+        "escalationReason": null
+      },
+      "analysisOutput": {
+        "agentName": "Analysis Agent",
+        "agentType": "analysis",
+        "status": "success",
+        "timestamp": "2026-01-31T09:15:37Z",
+        "confidence": 0.87,
+        "reasoning": "Root cause identified as log rotation configuration failure. Analysis shows application debug logging accidentally enabled in production since deployment v4.1.2 (deployed 3 days ago). Debug logs generating 2.1GB per hour versus normal 120MB per hour. Log rotation cron job failed 2 days ago due to permission error, preventing automatic cleanup. Current /var/log directory contains 47GB of uncompressed debug logs from past 72 hours.",
+        "data": {
+          "rootCause": "Debug logging enabled in production + log rotation failure",
+          "contributingFactors": [
+            "Debug log level accidentally set in v4.1.2 production config",
+            "Log rotation cron job permission denied error",
+            "No alerting on log rotation job failures",
+            "Logs not compressed or archived"
+          ],
+          "impactedServices": [
+            {
+              "name": "app-server-prod-07",
+              "impact": "critical",
+              "affectedEndpoints": "all application endpoints on this server",
+              "currentErrorRate": "0%"
+            }
+          ],
+          "historicalContext": {
+            "similarIncidents": 7,
+            "timeframe": "90 days",
+            "commonPattern": "log-accumulation",
+            "previousResolutions": ["manual cleanup", "rotation fix", "config correction"]
+          },
+          "diskAnalysis": {
+            "largestFiles": [
+              "/var/log/application-debug.log (28GB)",
+              "/var/log/application-debug.log.1 (12GB)",
+              "/var/log/application-debug.log.2 (7GB)"
+            ],
+            "oldestLogFile": "2026-01-28T09:00:00Z",
+            "logGrowthRate": "2.1GB/hour",
+            "timeToFullDisk": "1.5 hours"
+          }
+        },
+        "escalationRequired": false,
+        "escalationReason": null
+      },
+      "responseOutput": {
+        "agentName": "Response Planning Agent",
+        "agentType": "response",
+        "status": "success",
+        "timestamp": "2026-01-31T09:15:39Z",
+        "confidence": 0.95,
+        "reasoning": "Generated urgent response plan with immediate disk cleanup and configuration fixes. Automated log cleanup is safe and reversible. Critical time sensitivity due to 1.5 hour window before disk fills. Human approval NOT required as actions follow standard operational runbooks for disk space emergencies and do not modify application logic or data. All actions are low-risk maintenance operations covered by incident response guidelines.",
+        "data": {
+          "severity": "high",
+          "summary": "Critical disk space situation caused by debug logging enabled in production and failed log rotation. Disk will reach 100% capacity in 1.5 hours without intervention. Immediate cleanup and configuration correction required.",
+          "actionPlan": {
+            "priority1": [
+              {
+                "action": "Compress and archive debug logs older than 24 hours",
+                "estimatedTime": "8 minutes",
+                "risk": "none",
+                "reversible": true
+              },
+              {
+                "action": "Delete archived logs older than 7 days",
+                "estimatedTime": "2 minutes",
+                "risk": "none",
+                "reversible": false
+              },
+              {
+                "action": "Change application log level from DEBUG to INFO",
+                "estimatedTime": "1 minute",
+                "risk": "low",
+                "reversible": true
+              },
+              {
+                "action": "Fix log rotation cron job permissions",
+                "estimatedTime": "3 minutes",
+                "risk": "none",
+                "reversible": true
+              }
+            ],
+            "priority2": [
+              {
+                "action": "Implement disk space monitoring alerts at 75% threshold",
+                "estimatedTime": "30 minutes",
+                "risk": "none",
+                "reversible": true
+              },
+              {
+                "action": "Add log rotation job monitoring and alerting",
+                "estimatedTime": "1 hour",
+                "risk": "none",
+                "reversible": true
+              },
+              {
+                "action": "Review and standardize log retention policies",
+                "estimatedTime": "2 hours",
+                "risk": "none",
+                "reversible": true
+              }
+            ],
+            "priority3": [
+              {
+                "action": "Implement centralized log aggregation to prevent local storage issues",
+                "estimatedTime": "1 day",
+                "risk": "low",
+                "reversible": true
+              },
+              {
+                "action": "Create deployment checklist requiring log level verification",
+                "estimatedTime": "1 hour",
+                "risk": "none",
+                "reversible": true
+              }
+            ]
+          },
+          "playbooks": [
+            {
+              "name": "Disk Space Emergency Response",
+              "source": "ops-runbooks/disk-management.yml",
+              "applicability": "high",
+              "sections": ["emergency-cleanup", "log-management", "prevention"]
+            },
+            {
+              "name": "Log Rotation Troubleshooting",
+              "source": "ops-runbooks/log-rotation.yml",
+              "applicability": "high",
+              "sections": ["diagnosis", "repair", "monitoring"]
+            }
+          ],
+          "humanInTheLoop": {
+            "required": false,
+            "action": null,
+            "riskLevel": "low",
+            "reason": "Standard disk cleanup and log management operations covered by incident response runbooks. No application data or logic affected. Time-critical situation requires immediate automated response.",
+            "escalationTarget": null,
+            "contactInfo": null,
+            "sla": null,
+            "approvalCriteria": null
+          },
+          "safetyControls": [
+            "Logs archived before deletion (7-day retention)",
+            "Application continues running during cleanup",
+            "Log level change reversible via config",
+            "Monitoring active throughout operation",
+            "Backup verification completed"
+          ],
+          "estimatedResolutionTime": "15 minutes",
+          "successCriteria": [
+            "Disk usage drops below 70%",
+            "Log growth rate returns to <150MB/hour",
+            "Log rotation cron job executing successfully",
+            "Application log level confirmed as INFO",
+            "No application errors or service disruption"
+          ]
+        },
+        "escalationRequired": false,
+        "escalationReason": null
+      }
+    },
+    {
+      "id": "scenario-004",
+      "name": "Memory Leak Detection",
+      "description": "Gradual memory consumption increase indicating potential memory leak",
+      "input": {
+        "alertId": "ALT-MEM-004",
+        "timestamp": "2026-01-31T11:28:45Z",
+        "severity": "medium",
+        "source": "apm-monitoring",
+        "alertType": "memory_leak",
+        "metrics": {
+          "currentMemoryUsage": 7.8,
+          "allocatedMemory": 8.0,
+          "normalUsage": 3.2,
+          "percentageUsed": 97.5,
+          "growthRate": "450MB/hour"
+        },
+        "affectedResource": {
+          "type": "container",
+          "name": "notification-service-pod-3",
+          "region": "us-central-1",
+          "environment": "production"
+        },
+        "metadata": {
+          "containerImage": "notification-service:v1.14.2",
+          "runtime": "Node.js 18.x",
+          "uptime": "6 days"
+        }
+      },
+      "monitoringOutput": {
+        "agentName": "Monitoring Agent",
+        "agentType": "monitoring",
+        "status": "success",
+        "timestamp": "2026-01-31T11:28:47Z",
+        "confidence": 0.89,
+        "reasoning": "Detected sustained memory growth pattern indicative of memory leak. Container memory usage increased from normal 3.2GB to current 7.8GB over 6-day period. Growth rate of 450MB per hour is consistent and linear, characteristic of memory leak rather than normal workload variation. Container approaching OOM (out-of-memory) kill threshold of 8GB.",
+        "data": {
+          "anomalyDetected": true,
+          "anomalyType": "memory_leak",
+          "severity": "medium",
+          "riskScore": 7.8,
+          "metrics": {
+            "currentValue": 7.8,
+            "expectedValue": 3.2,
+            "deviation": 144,
+            "deviationUnit": "percentage"
+          },
+          "patterns": {
+            "isRecurring": false,
+            "similarIncidents": 1,
+            "timeframeOfSimilar": "180 days",
+            "typicalResolution": "service restart and bug fix deployment"
+          },
+          "urgency": "high",
+          "potentialImpact": "Container OOM kill, notification service disruption"
+        },
+        "escalationRequired": false,
+        "escalationReason": null
+      },
+      "analysisOutput": {
+        "agentName": "Analysis Agent",
+        "agentType": "analysis",
+        "status": "success",
+        "timestamp": "2026-01-31T11:28:49Z",
+        "confidence": 0.73,
+        "reasoning": "Root cause analysis points to WebSocket connection leak in notification service. Heap dump analysis shows 12,847 active WebSocket connections, but only 324 actual connected clients. Connections not being properly closed when clients disconnect. Issue introduced in version 1.14.2 deployed 6 days ago, which refactored connection management logic. Memory growth correlates with cumulative connection count rather than active users.",
+        "data": {
+          "rootCause": "WebSocket connection objects not released after client disconnect",
+          "contributingFactors": [
+            "Missing cleanup in connection close handler (v1.14.2 refactor)",
+            "Event listener accumulation on connection objects",
+            "Circular references preventing garbage collection"
+          ],
+          "impactedServices": [
+            {
+              "name": "notification-service",
+              "impact": "medium",
+              "affectedEndpoints": ["/ws/notifications"],
+              "currentErrorRate": "1%"
+            }
+          ],
+          "historicalContext": {
+            "similarIncidents": 1,
+            "timeframe": "180 days",
+            "commonPattern": "resource-leak",
+            "previousResolutions": ["hotfix deployment with proper cleanup"]
+          },
+          "memoryAnalysis": {
+            "heapUsed": 7.4,
+            "heapTotal": 7.8,
+            "external": 0.4,
+            "leakedObjects": "WebSocket connections",
+            "leakedCount": 12523,
+            "expectedCount": 324,
+            "leakRate": "85 objects/hour"
+          },
+          "codeAnalysis": {
+            "suspectedFile": "src/websocket/connection-manager.js",
+            "suspectedFunction": "handleDisconnect",
+            "issue": "Missing removeAllListeners() call",
+            "introducedInVersion": "1.14.2",
+            "introducedInCommit": "a7f3c21"
+          }
+        },
+        "escalationRequired": false,
+        "escalationReason": null
+      },
+      "responseOutput": {
+        "agentName": "Response Planning Agent",
+        "agentType": "response",
+        "status": "success",
+        "timestamp": "2026-01-31T11:28:51Z",
+        "confidence": 0.86,
+        "reasoning": "Generated two-phase response plan: immediate service restart to prevent OOM, followed by hotfix deployment. Service restart requires brief disruption to notification service, which has redundancy across 6 pods. Human approval required for production hotfix deployment to ensure code review and testing validation. Restart can proceed automatically as it's standard operational procedure covered by runbooks.",
+        "data": {
+          "severity": "medium",
+          "summary": "Memory leak detected in notification service caused by WebSocket connection cleanup failure. Service approaching OOM threshold. Immediate restart required to prevent crash, followed by hotfix deployment.",
+          "actionPlan": {
+            "priority1": [
+              {
+                "action": "Rolling restart of notification-service pods (1 pod at a time)",
+                "estimatedTime": "12 minutes",
+                "risk": "low",
+                "reversible": true
+              },
+              {
+                "action": "Enable detailed memory profiling on canary pod",
+                "estimatedTime": "5 minutes",
+                "risk": "none",
+                "reversible": true
+              }
+            ],
+            "priority2": [
+              {
+                "action": "Deploy hotfix for WebSocket cleanup (v1.14.3)",
+                "estimatedTime": "30 minutes",
+                "risk": "medium",
+                "reversible": true
+              },
+              {
+                "action": "Add memory leak detection alerts",
+                "estimatedTime": "1 hour",
+                "risk": "none",
+                "reversible": true
+              }
+            ],
+            "priority3": [
+              {
+                "action": "Implement automated heap dump analysis on memory growth",
+                "estimatedTime": "4 hours",
+                "risk": "none",
+                "reversible": true
+              },
+              {
+                "action": "Add WebSocket connection count monitoring",
+                "estimatedTime": "2 hours",
+                "risk": "none",
+                "reversible": true
+              },
+              {
+                "action": "Create code review checklist for resource lifecycle management",
+                "estimatedTime": "1 hour",
+                "risk": "none",
+                "reversible": true
+              }
+            ]
+          },
+          "playbooks": [
+            {
+              "name": "Memory Leak Response",
+              "source": "ops-runbooks/memory-management.yml",
+              "applicability": "high",
+              "sections": ["diagnosis", "immediate-mitigation", "root-cause-fix"]
+            },
+            {
+              "name": "Service Restart Procedures",
+              "source": "ops-runbooks/service-operations.yml",
+              "applicability": "high",
+              "sections": ["rolling-restart", "health-check-validation"]
+            }
+          ],
+          "humanInTheLoop": {
+            "required": true,
+            "action": "Deploy hotfix version 1.14.3 to production",
+            "riskLevel": "medium",
+            "reason": "Code deployment to production requires peer review and approval per change management policy. Hotfix modifies connection lifecycle management which is critical functionality.",
+            "escalationTarget": "Engineering Team Lead",
+            "contactInfo": "engineering-leads@company.com",
+            "sla": "2 hours",
+            "approvalCriteria": [
+              "Code review completed by 2 engineers",
+              "Unit tests passing for connection management",
+              "Hotfix tested in staging environment",
+              "Rollback plan documented"
+            ]
+          },
+          "safetyControls": [
+            "Rolling restart maintains 5/6 pod availability",
+            "Health checks prevent traffic to restarting pods",
+            "Canary deployment for hotfix",
+            "Memory profiling active for leak detection",
+            "Automated rollback if error rate exceeds 5%",
+            "Real-time monitoring dashboard active"
+          ],
+          "estimatedResolutionTime": "2 hours (including approval)",
+          "successCriteria": [
+            "Memory usage stabilizes at <4GB per pod",
+            "No memory growth over 24-hour observation period",
+            "WebSocket connection count matches active clients",
+            "No OOM kills detected",
+            "Service error rate remains <0.5%"
+          ]
+        },
+        "escalationRequired": true,
+        "escalationReason": "Production hotfix deployment requires engineering lead approval and code review"
+      }
+    }
+  ]
+}
