@@ -37,12 +37,12 @@ Automated multi-agent workflow orchestrated through IBM watsonx:
 ┌───────────────────────────▼─────────────────────────────┐
 │                  ORCHESTRATION LAYER                    │
 │              IBM watsonx Orchestrate                    │
-│    Sequential Execution • State Mgmt • Audit Logs      │
+│    Sequential Execution • State Mgmt • Audit Logs       │
 └───────────────────────────┬─────────────────────────────┘
                             │
 ┌───────────────────────────▼─────────────────────────────┐
 │                     AGENT LAYER                         │
-│  [Monitoring] → [Analysis] → [Response] → [Ticketing]  │
+│  [Monitoring] → [Analysis] → [Response] → [Ticketing]   │
 └───────────────────────────┬─────────────────────────────┘
                             │
 ┌───────────────────────────▼─────────────────────────────┐
